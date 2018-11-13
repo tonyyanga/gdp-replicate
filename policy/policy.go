@@ -10,30 +10,35 @@ if any. It does not actually deal with transmission of the data.
 
 package policy
 
-import "github.com/tonyyanga/gdp-replicate/gdplogd"
+import (
+    "io"
+
+    "github.com/tonyyanga/gdp-replicate/gdplogd"
+)
 
 type MessageType int
 
 const (
-    Request MessageType = 1
-    Response MessageType = 2
+    // Request & Response for Metadata
+    ReqMeta MessageType = 1
+    RespMeta
+
+    // Request & Response for Data
+    ReqData
+    RespData
 )
 
-type Message interface {
-    // A message must have a type
-    GetMessageType() MessageType
+// Message is a data structure to talk to peers
+type Message struct {
+    Type MessageType
+    Body io.Reader
 }
 
-type ResponseMessage interface {
-    Message
-
-    GetMissingData() []gdplogd.HashAddr
-}
-
+// Interface for a Policy that deals with Messages
 type Policy interface {
     // Generate message from a graph
-    GenerateMessage(graph gdplogd.LogGraph) Message
+    GenerateMessage(graph *gdplogd.LogGraph) *Message
 
     // Process a message and return an array of missing data
-    ProcessMessage(msg Message) []gdplogd.HashAddr
+    ProcessMessage(msg *Message) []gdplogd.HashAddr
 }
