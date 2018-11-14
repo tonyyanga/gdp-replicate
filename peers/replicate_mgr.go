@@ -7,11 +7,8 @@ import (
 
 // Entry point to talk to other replication daemons
 type ReplicateNetworkMgr interface {
-    // TODO add more init parameters, e.g. peers list
-    Init()
-
     // handler for incoming messages
-    ListenAndServe(address string, handler func(msg *policy.Message))
+    ListenAndServe(address string, handler func(msg *policy.Message)) error
 
     Send(peer gdplogd.HashAddr, msg *policy.Message) error
 
