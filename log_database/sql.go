@@ -2,6 +2,7 @@ package log_database
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -37,6 +38,53 @@ func CreateTable(db *sql.DB) error {
 	`
 	_, err := db.Exec(create_table_statement)
 	return err
+}
+
+// Return all log entries in the database
+func GetAllLogs(db *sql.DB) ([]LogEntry, error) {
+	rows, err := db.Query("select hash, recno, timestamp, accuracy, prevhash, value, sig from log_entry")
+	if err != nil {
+		return nil, err
+	}
+
+	var logEntries []LogEntry
+	for rows.Next() {
+		var logEntry LogEntry
+		err = rows.Scan(
+			&logEntry.Hash,
+			&logEntry.RecNo,
+			&logEntry.Timestamp,
+			&logEntry.Accuracy,
+			&logEntry.PrevHash,
+			&logEntry.Value,
+			&logEntry.Sig,
+		)
+		if err != nil {
+			// Return the log entries read so far with the error
+			return logEntries, err
+		}
+
+		logEntries = append(logEntries, logEntry)
+	}
+	return logEntries, nil
+}
+
+// Determine if a log entry with a specific hash is present in the database
+func HashPresent(db *sql.DB, hash []byte) (bool, error) {
+	queryString := fmt.Sprintf("select count(hash) from log_entry where hex(hash) == '%X'\n", hash)
+	rows, err := db.Query(queryString)
+	if err != nil {
+		return false, err
+	}
+
+	var hashPresent int
+	for rows.Next() {
+		err = rows.Scan(&hashPresent)
+		if err != nil {
+			return false, err
+		}
+	}
+	return hashPresent == 1, nil
 }
 
 // Add LogEntries to the database.
