@@ -8,7 +8,7 @@ import (
 )
 
 type LogEntry struct {
-	Hash []byte
+	Hash [32]byte
 
 	// monotonically increasing number that increases by 1 for each new record,
 	// represents the count of records starting from the very first record
@@ -19,7 +19,7 @@ type LogEntry struct {
 
 	// in seconds (single precision)
 	Accuracy float64
-	PrevHash []byte
+	PrevHash [32]byte
 	Value    []byte
 	Sig      []byte
 }
@@ -40,6 +40,24 @@ func CreateTable(db *sql.DB) error {
 	return err
 }
 
+func GetLogGraphs(logEntries []LogEntry) (forwardEdges map[[32]byte][32]byte, backwardEdges map[[32]byte][32]byte) {
+	forwardEdges = make(map[[32]byte][32]byte)
+	backwardEdges = make(map[[32]byte][32]byte)
+
+	var emptyHash [32]byte
+	for _, logEntry := range logEntries {
+		fmt.Printf("Parsing %X\n", logEntry.Hash)
+		backwardEdges[logEntry.Hash] = logEntry.PrevHash
+
+		// Do not accept empty PrevHashes
+		if logEntry.PrevHash != emptyHash {
+			forwardEdges[logEntry.PrevHash] = logEntry.Hash
+		}
+	}
+	return forwardEdges, backwardEdges
+
+}
+
 // Return all log entries in the database
 func GetAllLogs(db *sql.DB) ([]LogEntry, error) {
 	rows, err := db.Query("select hash, recno, timestamp, accuracy, prevhash, value, sig from log_entry")
@@ -48,8 +66,48 @@ func GetAllLogs(db *sql.DB) ([]LogEntry, error) {
 	}
 
 	var logEntries []LogEntry
+	var hashHolder []byte
+	var prevHashHolder []byte
 	for rows.Next() {
 		var logEntry LogEntry
+		err = rows.Scan(
+			&hashHolder,
+			&logEntry.RecNo,
+			&logEntry.Timestamp,
+			&logEntry.Accuracy,
+			&prevHashHolder,
+			&logEntry.Value,
+			&logEntry.Sig,
+		)
+		if err != nil {
+			// Return the log entries read so far with the error
+			return logEntries, err
+		}
+
+		// Copy the byte slices into byte arrays
+		copy(logEntry.Hash[:], hashHolder[0:32])
+
+		// Previous hashes may not be populated
+		if len(prevHashHolder) > 0 {
+			copy(logEntry.PrevHash[:], prevHashHolder[0:32])
+		}
+
+		logEntries = append(logEntries, logEntry)
+	}
+	return logEntries, nil
+}
+
+// Return log entry with hash
+func GetLog(db *sql.DB, hash []byte) (LogEntry, error) {
+	var logEntry LogEntry
+
+	queryString := fmt.Sprintf("select hash, recno, timestamp, accuracy, prevhash, value, sig from log_entry where hex(hash) == '%X'", hash)
+	rows, err := db.Query(queryString)
+	if err != nil {
+		return logEntry, err
+	}
+
+	for rows.Next() {
 		err = rows.Scan(
 			&logEntry.Hash,
 			&logEntry.RecNo,
@@ -60,17 +118,15 @@ func GetAllLogs(db *sql.DB) ([]LogEntry, error) {
 			&logEntry.Sig,
 		)
 		if err != nil {
-			// Return the log entries read so far with the error
-			return logEntries, err
+			return logEntry, err
 		}
-
-		logEntries = append(logEntries, logEntry)
 	}
-	return logEntries, nil
+
+	return logEntry, nil
 }
 
 // Determine if a log entry with a specific hash is present in the database
-func HashPresent(db *sql.DB, hash []byte) (bool, error) {
+func HashPresent(db *sql.DB, hash [32]byte) (bool, error) {
 	queryString := fmt.Sprintf("select count(hash) from log_entry where hex(hash) == '%X'\n", hash)
 	rows, err := db.Query(queryString)
 	if err != nil {
