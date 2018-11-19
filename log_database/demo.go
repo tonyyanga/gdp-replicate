@@ -9,7 +9,7 @@ import (
 // Demonstrate the ability to create, write to and read from a database.
 func Demo() {
 
-	db, err := sql.Open("sqlite3", "./sample.glog")
+	db, err := sql.Open("sqlite3", "./log_database/sample.glog")
 	checkError(err)
 	defer db.Close()
 
