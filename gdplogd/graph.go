@@ -4,8 +4,8 @@ the source of truth on the log server
 */
 package gdplogd
 
-// A GDP graph supports query with Hash addresses
-type HashAddr string
+// A GDP graph supports query with Hash addresses of 32 bytes (256 bits)
+type HashAddr [32]byte
 
 // Multimap for HashAddr
 type HashAddrMultiMap map[HashAddr][]HashAddr

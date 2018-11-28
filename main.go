@@ -13,7 +13,6 @@ func main() {
     msgType = 1
 
     var addr gdplogd.HashAddr
-    addr = "abcdef"
 
     fmt.Println(msgType)
     fmt.Println(addr)
