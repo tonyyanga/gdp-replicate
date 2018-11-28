@@ -34,11 +34,27 @@ type Message struct {
     Body io.Reader
 }
 
-// Interface for a Policy that deals with Messages
+// Interface for a Policy that deals with Messages in regard to
+// a specific graph
+//
+// Since messaging between a pair of replication daemons can have
+// multiple stages, this Policy interface simply specifies the peer
+// involved in message generation. Implementation of the Policy
+// interface should keep track of its internal state.
 type Policy interface {
-    // Generate message from a graph
-    GenerateMessage(graph *gdplogd.LogGraph) *Message
+    // Get the LogDaemonConnection, implemention should support it
+    getLogDaemonConnection() *gdplogd.LogDaemonConnection
 
-    // Process a message and return an array of missing data
-    ProcessMessage(msg *Message) []gdplogd.HashAddr
+    // Accept a new graph
+    // The new graph might not be immediately in effect, if message
+    // exchange with some peers are still in progress
+    AcceptNewGraph(graph *gdplogd.LogGraphWrapper)
+
+    // Generate message to be sent to a server at dest
+    // Used to begin the state machine with a peer at certain timeout
+    GenerateMessage(dest *gdplogd.HashAddr) *Message
+
+    // Process a message from server at src and construct a return message
+    // If no message is needed, return nil
+    ProcessMessage(msg *Message, src *gdplogd.HashAddr) *Message
 }
