@@ -184,7 +184,57 @@ func (policy *GraphDiffPolicy) ProcessMessage(msg *Message, src gdplogd.HashAddr
 // Below are handlers for specific messages
 // Handlers assume the mutex of the src is held by caller
 func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAddr) *Message {
+    peerBegins, peerEnds, err := policy.processBeginsEnds(msg.Body)
 
+    if err != nil {
+        // Message corrupted
+        policy.resetPeerStatus(src)
+        return nil
+    }
+
+    policy.graphInUse[src] = policy.currentGraph
+    policy.peerLastMsgType[src] = firstMsgRecved
+
+    // Now that we have peer begins and ends, we start processing
+    _, _, peerBeginsNotMatched, peerEndsNotMatched := policy.compareBeginsEnds(peerBegins, peerEnds)
+
+    graph := policy.graphInUse[src]
+    nodeMap := graph.GetNodeMap()
+
+    var nodesToSend []gdplogd.HashAddr
+
+    for _, begin := range peerBeginsNotMatched {
+        if _, found := nodeMap[begin]; found {
+            // Search all nodes ahead of begin to be sent to peer
+            // TODO
+        }
+    }
+
+    for _, end := range peerEndsNotMatched {
+        if _, found := nodeMap[end]; found {
+            // Search all nodes after end to be sent to peer
+            // TODO
+        }
+    }
+
+    var buf bytes.Buffer
+    buf.WriteString("begins\n")
+    addrListToReader(graph.GetLogicalBegins(), &buf)
+
+    buf.WriteString("ends\n")
+    addrListToReader(graph.GetLogicalEnds(), &buf)
+
+    buf.WriteString("data\n")
+    err = policy.constructDataSection(nodesToSend, buf)
+    if err != nil {
+        policy.resetPeerStatus(src)
+        return nil
+    }
+
+    return &Message{
+        Type: second,
+        Body: &buf,
+    }
 }
 
 func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAddr) *Message {
@@ -232,6 +282,8 @@ func (policy *GraphDiffPolicy) processThirdMsg(msg *Message, src gdplogd.HashAdd
     }
 
     policy.processDataSection(reader)
+
+    policy.peerLastMsgType[src] = thirdMsgRecved
 
     return ret
 }
