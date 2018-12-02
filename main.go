@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
-	"github.com/tonyyanga/gdp-replicate/log_database"
 	"github.com/tonyyanga/gdp-replicate/policy"
 )
 
