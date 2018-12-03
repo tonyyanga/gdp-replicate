@@ -21,7 +21,7 @@ func (policy *GraphDiffPolicy) constructDataSection(addrs []gdplogd.HashAddr, de
     // TODO
 }
 
-// Process data section of the message
+// Process data section of the message and update the current graph accordingly
 // Assume that "data\n" is already consumed
 func (policy *GraphDiffPolicy) processDataSection(body io.Reader) {
     // TODO

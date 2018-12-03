@@ -218,18 +218,20 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAdd
     }
 
     var buf bytes.Buffer
+    buf.WriteString("data\n")
+    err = policy.constructDataSection(nodesToSend, &buf)
+    if err != nil {
+        policy.resetPeerStatus(src)
+        return nil
+    }
+
     buf.WriteString("begins\n")
     addrListToReader(graph.GetLogicalBegins(), &buf)
 
     buf.WriteString("ends\n")
     addrListToReader(graph.GetLogicalEnds(), &buf)
 
-    buf.WriteString("data\n")
-    err = policy.constructDataSection(nodesToSend, buf)
-    if err != nil {
-        policy.resetPeerStatus(src)
-        return nil
-    }
+    policy.peerLastMsgType[src] = firstMsgRecved
 
     return &Message{
         Type: second,
@@ -238,6 +240,90 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAdd
 }
 
 func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAddr) *Message {
+    reader := bufio.NewReader(msg.Body)
+    line, err := reader.ReadBytes('\n')
+
+    if err != nil || bytes.Compare(line, []byte("data\n")) != 0 {
+        // Message is corrupted
+        policy.resetPeerStatus(src)
+        return nil
+    }
+
+    policy.processDataSection(reader)
+
+    // Since the data section has been used to update the graph, we can compare digest of the
+    // peer's graph with up-to-date information
+    peerBegins, peerEnds, err := policy.processBeginsEnds(msg.Body)
+
+    if err != nil {
+        // Message corrupted
+        policy.resetPeerStatus(src)
+        return nil
+    }
+
+    myBeginsNotMatched, myEndsNotMatched, peerBeginsNotMatched, peerEndsNotMatched := policy.compareBeginsEnds(peerBegins, peerEnds)
+
+    graph := policy.graphInUse[src]
+    nodeMap := graph.GetNodeMap()
+
+    var nodesToSend []gdplogd.HashAddr
+    var requests []gdplogd.HashAddr
+
+    var myBeginsEndsToSend map[gdplogd.HashAddr]int
+
+    for _, begin := range peerBeginsNotMatched {
+        if _, found := nodeMap[begin]; found {
+            // Search all nodes ahead of begin to be sent to peer
+            // If we reach a begin / end of local graph, add to myBeginsEndsToSend
+            // TODO
+        } else {
+            // Add the entire connected component to request
+            requests = append(requests, begin)
+        }
+    }
+
+    for _, end := range peerEndsNotMatched {
+        if _, found := nodeMap[end]; found {
+            // Search all nodes ahead of begin to be sent to peer
+            // If we reach a begin / end of local graph, add to myBeginsEndsToSend
+            // TODO
+        } else {
+            // Add the entire connected component to request
+            requests = append(requests, end)
+        }
+    }
+
+    for _, begin := range myBeginsNotMatched {
+        if _, found := myBeginsEndsToSend[begin]; !found {
+            // Add the connected component to nodesToSend
+
+        }
+    }
+
+    for _, end := range myBeginsNotMatched {
+        if _, found := myBeginsEndsToSend[end]; !found {
+            // Add the connected component to nodesToSend
+
+        }
+    }
+
+    var buf bytes.Buffer
+    buf.WriteString("requests\n")
+    addrListToReader(requests, &buf)
+
+    buf.WriteString("data\n")
+    err = policy.constructDataSection(nodesToSend, &buf)
+    if err != nil {
+        policy.resetPeerStatus(src)
+        return nil
+    }
+
+    policy.peerLastMsgType[src] = thirdMsgSent
+
+    return &Message{
+        Type: third,
+        Body: &buf,
+    }
 
 }
 
