@@ -16,5 +16,5 @@ func main() {
 
 	fmt.Println(msgType)
 	fmt.Println(addr)
-	log_database.Demo()
+	gdplogd.Demo()
 }

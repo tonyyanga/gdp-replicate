@@ -1,33 +1,59 @@
 package gdplogd
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 )
 
-// Demonstrate the ability to create, write to and read from a database.
+// Demonstrate the LogGraphWrapper
 func Demo() {
+	fmt.Println("demoing")
 
-	/*
-		db, err := sql.Open("sqlite3", "./log_database/sample.glog")
-		checkError(err)
-		defer db.Close()
+	var log LogGraphWrapper
+	log, _ = InitFakeGraph()
 
-		logEntries, err := GetAllLogs(db)
-		checkError(err)
-		hash := logEntries[0].Hash
+	fmt.Println("Actual Pointer Map:")
+	for key, val := range log.GetActualPtrMap() {
+		fmt.Printf("%x -> %x\n", key, val)
+	}
 
-		present, err := HashPresent(db, hash)
-		checkError(err)
-		fmt.Printf("hash present: %t\n", present)
-
-		forwardEdges, backwardEdges := GetLogGraphs(logEntries)
-		for k, v := range backwardEdges {
-			fmt.Printf("backward edge %X -> %X\n", k, v)
+	fmt.Println("Logical Pointer Map:")
+	for key, hashes := range log.GetLogicalPtrMap() {
+		fmt.Printf("\n%x -> \n", key)
+		for _, hash := range hashes {
+			fmt.Printf("\t%x\n", hash)
 		}
-		for k, v := range forwardEdges {
-			fmt.Printf("forward edge %X -> %X\n", k, v)
-		}
-	*/
+	}
+
+	fmt.Println("Logical Begins:")
+	for _, hash := range log.GetLogicalBegins() {
+		fmt.Printf("%x\n", hash)
+	}
+
+	fmt.Println("Logical Ends:")
+	for _, hash := range log.GetLogicalEnds() {
+		fmt.Printf("%x\n", hash)
+	}
+
+}
+
+// Demonstrate the ability to create, write to and read from a database.
+func SqlDemo() {
+	db, err := sql.Open("sqlite3", "./gdplogd/sample.glog")
+	checkError(err)
+	defer db.Close()
+
+	var log LogGraphWrapper
+
+	log, err = InitLogGraph([32]byte{}, db)
+	checkError(err)
+
+	fmt.Println("Logical Begins:")
+	for _, hash := range log.GetLogicalBegins() {
+		fmt.Printf("%x\n", hash)
+	}
+
 }
 
 func checkError(err error) {

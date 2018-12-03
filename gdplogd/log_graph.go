@@ -27,19 +27,19 @@ type LogGraph struct {
 	HashPtrMap map[HashAddr]HashAddr
 }
 
-func (logGraph *LogGraph) GetActualPtrMap() map[HashAddr]HashAddr {
+func (logGraph LogGraph) GetActualPtrMap() map[HashAddr]HashAddr {
 	return logGraph.backwardEdges
 }
 
-func (logGraph *LogGraph) GetLogicalPtrMap() HashAddrMultiMap {
+func (logGraph LogGraph) GetLogicalPtrMap() HashAddrMultiMap {
 	return logGraph.forwardEdges
 }
 
-func (logGraph *LogGraph) GetLogicalEnds() []HashAddr {
+func (logGraph LogGraph) GetLogicalEnds() []HashAddr {
 	return logGraph.logicalEnds
 }
 
-func (logGraph *LogGraph) GetLogicalBegins() []HashAddr {
+func (logGraph LogGraph) GetLogicalBegins() []HashAddr {
 	return logGraph.logicalBegins
 }
 
@@ -66,7 +66,7 @@ func (logGraph *LogGraph) RefreshLogGraph() error {
 	}
 
 	logGraph.logEntries = logEntries
-	logGraph.forwardEdges, logGraph.backwardEdges = GetLogGraphs(
+	logGraph.forwardEdges, logGraph.backwardEdges = getLogGraphs(
 		logGraph.logEntries,
 	)
 
@@ -76,12 +76,11 @@ func (logGraph *LogGraph) RefreshLogGraph() error {
 	return nil
 }
 
-func GetLogGraphs(logEntries []LogEntryMetadata) (forwardEdges HashAddrMultiMap, backwardEdges map[HashAddr]HashAddr) {
+func getLogGraphs(logEntries []LogEntryMetadata) (forwardEdges HashAddrMultiMap, backwardEdges map[HashAddr]HashAddr) {
 	forwardEdges = make(HashAddrMultiMap)
 	backwardEdges = make(map[HashAddr]HashAddr)
 
 	for _, logEntry := range logEntries {
-		fmt.Printf("Parsing %X\n", logEntry.Hash)
 		backwardEdges[logEntry.Hash] = logEntry.PrevHash
 
 		nodeForwardEdges, present := forwardEdges[logEntry.PrevHash]
