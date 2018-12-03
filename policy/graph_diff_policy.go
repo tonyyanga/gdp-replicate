@@ -206,14 +206,16 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAdd
     for _, begin := range peerBeginsNotMatched {
         if _, found := nodeMap[begin]; found {
             // Search all nodes ahead of begin to be sent to peer
-            // TODO
+            visited, _ := policy.searchAhead(begin, peerEnds)
+            nodesToSend = append(nodesToSend, visited...)
         }
     }
 
     for _, end := range peerEndsNotMatched {
         if _, found := nodeMap[end]; found {
             // Search all nodes after end to be sent to peer
-            // TODO
+            visited, _ := policy.searchAfter(end, peerBegins)
+            nodesToSend = append(nodesToSend, visited...)
         }
     }
 
@@ -275,7 +277,12 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
         if _, found := nodeMap[begin]; found {
             // Search all nodes ahead of begin to be sent to peer
             // If we reach a begin / end of local graph, add to myBeginsEndsToSend
-            // TODO
+            visited, localEnds := policy.searchAhead(begin, peerEnds)
+            nodesToSend = append(nodesToSend, visited...)
+
+            for _, node := range localEnds {
+                myBeginsEndsToSend[node] = 1
+            }
         } else {
             // Add the entire connected component to request
             requests = append(requests, begin)
@@ -286,7 +293,12 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
         if _, found := nodeMap[end]; found {
             // Search all nodes ahead of begin to be sent to peer
             // If we reach a begin / end of local graph, add to myBeginsEndsToSend
-            // TODO
+            visited, localEnds := policy.searchAfter(end, peerBegins)
+            nodesToSend = append(nodesToSend, visited...)
+
+            for _, node := range localEnds {
+                myBeginsEndsToSend[node] = 1
+            }
         } else {
             // Add the entire connected component to request
             requests = append(requests, end)
@@ -296,16 +308,18 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
     for _, begin := range myBeginsNotMatched {
         if _, found := myBeginsEndsToSend[begin]; !found {
             // Add the connected component to nodesToSend
-
+            nodesToSend = append(nodesToSend, begin)
         }
     }
 
     for _, end := range myBeginsNotMatched {
         if _, found := myBeginsEndsToSend[end]; !found {
             // Add the connected component to nodesToSend
-
+            nodesToSend = append(nodesToSend, end)
         }
     }
+
+    nodesToSend = policy.getConnectedAddrs(nodesToSend)
 
     var buf bytes.Buffer
     buf.WriteString("requests\n")

@@ -33,6 +33,24 @@ func (policy *GraphDiffPolicy) tryStoreData(addr gdplogd.HashAddr, data []byte) 
     // TODO
 }
 
+// Traverse ahead in the graph starting from "start". Traversal on a certain path ends when meeting a node in
+// "terminals"
+// Return:
+//   a list of hash addresses visited, not including start or terminals
+//   a list of begins / ends in local graph reached
+func (policy *GraphDiffPolicy) searchAhead(start gdplogd.HashAddr, terminals []gdplogd.HashAddr) ([]gdplogd.HashAddr, []gdplogd.HashAddr) {
+
+}
+
+// Traverse after in the graph starting from "start". Traversal on a certain path ends when meeting a node in
+// "terminals"
+// Return:
+//   a list of hash addresses visited, not including start or terminals
+//   a list of begins / ends in local graph reached
+func (policy *GraphDiffPolicy) searchAfter(start gdplogd.HashAddr, terminals []gdplogd.HashAddr) ([]gdplogd.HashAddr, []gdplogd.HashAddr) {
+
+}
+
 // Process begins and ends section, includes "begins\n", "ends\n"
 func (policy *GraphDiffPolicy) processBeginsEnds(body io.Reader) ([]gdplogd.HashAddr, []gdplogd.HashAddr, error) {
     reader := bufio.NewReader(body)
