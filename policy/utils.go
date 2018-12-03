@@ -4,6 +4,8 @@ import (
     "io"
     "bytes"
     "strconv"
+    "fmt"
+    "bufio"
 
     "github.com/tonyyanga/gdp-replicate/gdplogd"
 )
@@ -26,4 +28,30 @@ func addrListFromReader(buf io.Reader) ([]gdplogd.HashAddr, error) {
     // TODO
 }
 
+// Process begins and ends section, includes "begins\n", "ends\n"
+func processBeginsEnds(body io.Reader) ([]gdplogd.HashAddr, []gdplogd.HashAddr, error) {
+    reader := bufio.NewReader(body)
+    line, err := reader.ReadBytes('\n')
 
+    if err != nil || bytes.Compare(line, []byte("begins\n")) != 0 {
+        return nil, nil, fmt.Errorf("Error processing message: begins")
+    }
+
+    peerBegins, err := addrListFromReader(reader)
+    if err != nil {
+        return nil, nil, err
+    }
+
+    line, err = reader.ReadBytes('\n')
+
+    if err != nil || bytes.Compare(line, []byte("ends\n")) != 0 {
+        return nil, nil, fmt.Errorf("Error processing message: ends")
+    }
+
+    peerEnds, err := addrListFromReader(reader)
+    if err != nil {
+        return nil, nil, err
+    }
+
+    return peerBegins, peerEnds, nil
+}
