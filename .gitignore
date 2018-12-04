@@ -19,3 +19,6 @@
 
 # binaries
 gdp-replicate
+
+# Go dependencies
+vendor/

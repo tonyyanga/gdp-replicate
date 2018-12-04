@@ -10,40 +10,46 @@ type HashAddr [32]byte
 // Multimap for HashAddr
 type HashAddrMultiMap map[HashAddr][]HashAddr
 
-// Metadata for a log item
 type LogMetadata struct {
-    // TODO: I am not sure what are needed
-    PrevPointer HashAddr
-    Timestamp uint32
+	// TODO: I am not sure what are needed
+	PrevPointer HashAddr
+	Timestamp   uint32
 }
 
-// LogGraph descriobe the graph of a DataCapsule on a log server
-type LogGraph struct {
-    // Address of the DataCapsule
-    GraphAddr HashAddr
+type LogEntryMetadata struct {
+	Hash HashAddr
 
-    // The actual hash pointer map, which follows:
-    // A (oldest) <- B <- C (newest)
-    HashPtrMap map[HashAddr]HashAddr
+	// monotonically increasing number that increases by 1 for each new record,
+	// represents the count of records starting from the very first record
+	RecNo int
+
+	// 64 bit, nanoseconds since 1/1/70
+	Timestamp int64
+
+	// in seconds (single precision)
+	Accuracy float64
+	PrevHash HashAddr
+	Sig      []byte
 }
 
 // LogGraphWrapper provides (and caches) typical usage of the Graph
 type LogGraphWrapper interface {
-    // Node map is a map with keys as all nodes found
-    GetNodeMap() map[HashAddr]int
 
-    // The actual hash pointer map, which follows:
-    // A (oldest) <- B <- C (newest)
-    GetActualPtrMap() map[HashAddr]HashAddr
+  // Node map is a map with keys as all nodes found
+  GetNodeMap() map[HashAddr]int
 
-    // The logical hash pointer map, which follows:
-    // A (oldest) -> B -> C (newest)
-    GetLogicalPtrMap() HashAddrMultiMap
+  // The actual hash pointer map, which follows:
+  // A (oldest) <- B <- C (newest)
+  GetActualPtrMap() map[HashAddr]HashAddr
 
-    // Nodes that have no entry in logical pointer map, e.g. C
-    GetLogicalEnds() []HashAddr
+	// The logical hash pointer map, which follows:
+	// A (oldest) -> B -> C (newest)
+	GetLogicalPtrMap() HashAddrMultiMap
 
-    // Nodes that have dangling entries in the actual map
-    // E.g. [X] <- D but there is no entry for X in the actual map; D has a dangling entry
-    GetLogicalBegins() []HashAddr
+	// Nodes that have no entry in logical pointer map, e.g. C
+	GetLogicalEnds() []HashAddr
+
+	// Nodes that have dangling entries in the actual map
+	// E.g. [X] <- D but there is no entry for X in the actual map; D has a dangling entry
+	GetLogicalBegins() []HashAddr
 }

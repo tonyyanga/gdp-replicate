@@ -1,0 +1,4 @@
+package: github.com/tonyyanga/gdp-replicate
+import:
+- package: github.com/mattn/go-sqlite3
+  version: ^1.10.0

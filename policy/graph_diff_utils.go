@@ -6,7 +6,7 @@ import (
     "bufio"
     "strconv"
 
-    "github.com/tonyyanga/gdp-replicate/gdplogd"
+	"github.com/tonyyanga/gdp-replicate/gdplogd"
 )
 
 // Get peer policy context
@@ -42,7 +42,7 @@ func (ctx *peerPolicyContext) getConnectedAddrs(addrs []gdplogd.HashAddr) []gdpl
     for _, addr := range addrs {
         _getConnected(addr)
     }
-
+  
     ret := []gdplogd.HashAddr{}
     for key := range result {
         ret = append(ret, key)
