@@ -52,4 +52,7 @@ type LogGraphWrapper interface {
 	// Nodes that have dangling entries in the actual map
 	// E.g. [X] <- D but there is no entry for X in the actual map; D has a dangling entry
 	GetLogicalBegins() []HashAddr
+
+	// Accept a list of new log items
+	AcceptNewLogEntries(entries []LogEntryMetadata)
 }

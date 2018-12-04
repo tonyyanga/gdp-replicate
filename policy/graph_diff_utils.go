@@ -63,6 +63,11 @@ func (ctx *peerPolicyContext) constructDataSection(addrs []gdplogd.HashAddr, des
 			return err
 		}
 
+		metadata, err := ctx.policy.conn.ReadLogMetadata(ctx.policy.name, addr)
+		if err != nil {
+			return err
+		}
+
 		// Timestamp and other Metadata should be included TODO
 
 		var data bytes.Buffer
@@ -75,8 +80,9 @@ func (ctx *peerPolicyContext) constructDataSection(addrs []gdplogd.HashAddr, des
 		dest.WriteString(strconv.Itoa(data.Len()))
 		dest.WriteString("\n")
 
-		// Second, write the 32 byte address
+		// Second, write the metadata: 32 byte address + 32 bytes prev pointer
 		dest.Write(addr[:])
+		dest.Write(metadata.PrevHash[:])
 
 		// Third, write actual data
 		dest.ReadFrom(&data)
@@ -103,6 +109,8 @@ func (ctx *peerPolicyContext) processDataSection(body io.Reader) {
 		return
 	}
 
+	updates := make([]gdplogd.LogEntryMetadata, 0)
+
 	for ; length > 0; length-- {
 		// Read an individual block
 		dataLength_, err := reader.ReadBytes('\n')
@@ -117,7 +125,13 @@ func (ctx *peerPolicyContext) processDataSection(body io.Reader) {
 		}
 
 		var addr gdplogd.HashAddr
+		var prev gdplogd.HashAddr
 		_, err = io.ReadFull(reader, addr[:])
+		if err != nil {
+			return
+		}
+
+		_, err = io.ReadFull(reader, prev[:])
 		if err != nil {
 			return
 		}
@@ -128,15 +142,26 @@ func (ctx *peerPolicyContext) processDataSection(body io.Reader) {
 			return
 		}
 
-		ctx.tryStoreData(addr, data)
+		metadata := gdplogd.LogEntryMetadata{
+			Hash:     addr,
+			PrevHash: prev,
+			// TODO
+		}
+
+		ctx.tryStoreData(metadata, data)
+
+		updates = append(updates, metadata)
 	}
+
+	ctx.graph.AcceptNewLogEntries(updates)
 }
 
 // Try to store the data at addr
 // Return whether the data is stored via this call, or already in gdplogd
-func (ctx *peerPolicyContext) tryStoreData(addr gdplogd.HashAddr, data []byte) bool {
+func (ctx *peerPolicyContext) tryStoreData(metadata gdplogd.LogEntryMetadata, data []byte) bool {
 	conn := ctx.policy.conn
 	name := ctx.policy.name
+	addr := metadata.Hash
 
 	// Update the graph
 	// TODO: call refresh graph interface
@@ -151,10 +176,7 @@ func (ctx *peerPolicyContext) tryStoreData(addr gdplogd.HashAddr, data []byte) b
 		return false
 	} else {
 		// TODO: proper error handling
-		conn.WriteLogItem(name, &gdplogd.LogEntryMetadata{
-			Hash: addr,
-			// TODO
-		}, bytes.NewBuffer(data))
+		conn.WriteLogItem(name, &metadata, bytes.NewBuffer(data))
 		return true
 	}
 
