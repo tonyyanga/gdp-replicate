@@ -142,13 +142,20 @@ func (ctx *peerPolicyContext) tryStoreData(addr gdplogd.HashAddr, data []byte) b
     // TODO: call refresh graph interface
 
     // Update the connection
-    if conn.ContainsLogItem(name, addr) {
+    contains, err := conn.ContainsLogItem(name, addr)
+    if err != nil {
+        return false
+    }
+
+    if contains {
         return false
     } else {
         // TODO: proper error handling
-        conn.WriteLogItem(name, addr, &gdplogd.LogMetadata{
+        conn.WriteLogItem(name, &gdplogd.LogEntryMetadata{
+            Hash: addr,
             // TODO
-        }, bufio.NewReader(data))
+        }, bytes.NewBuffer(data))
+        return true
     }
 
 }

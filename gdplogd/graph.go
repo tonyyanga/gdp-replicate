@@ -35,12 +35,12 @@ type LogEntryMetadata struct {
 // LogGraphWrapper provides (and caches) typical usage of the Graph
 type LogGraphWrapper interface {
 
-  // Node map is a map with keys as all nodes found
-  GetNodeMap() map[HashAddr]int
+	// Node map is a map with keys as all nodes found
+	GetNodeMap() map[HashAddr]int
 
-  // The actual hash pointer map, which follows:
-  // A (oldest) <- B <- C (newest)
-  GetActualPtrMap() map[HashAddr]HashAddr
+	// The actual hash pointer map, which follows:
+	// A (oldest) <- B <- C (newest)
+	GetActualPtrMap() map[HashAddr]HashAddr
 
 	// The logical hash pointer map, which follows:
 	// A (oldest) -> B -> C (newest)

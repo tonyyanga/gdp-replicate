@@ -21,6 +21,7 @@ type LogGraph struct {
 	backwardEdges map[HashAddr]HashAddr
 	logicalEnds   []HashAddr
 	logicalBegins []HashAddr
+    nodeMap       map[HashAddr]int
 
 	// The actual hash pointer map, which follows:
 	// A (oldest) <- B <- C (newest)
@@ -41,6 +42,10 @@ func (logGraph LogGraph) GetLogicalEnds() []HashAddr {
 
 func (logGraph LogGraph) GetLogicalBegins() []HashAddr {
 	return logGraph.logicalBegins
+}
+
+func (logGraph LogGraph) GetNodeMap() map[HashAddr]int {
+    return logGraph.nodeMap
 }
 
 // Return LogGraph and calculate its logical represntation
@@ -72,8 +77,17 @@ func (logGraph *LogGraph) RefreshLogGraph() error {
 
 	logGraph.CalcLogicalEnds()
 	logGraph.CalcLogicalBegins()
+    logGraph.CalcNodeMap()
 
 	return nil
+}
+
+func (logGraph *LogGraph) CalcNodeMap() {
+    logGraph.nodeMap = make(map[HashAddr]int)
+
+    for key := range logGraph.HashPtrMap {
+        logGraph.nodeMap[key] = 1
+    }
 }
 
 func getLogGraphs(logEntries []LogEntryMetadata) (forwardEdges HashAddrMultiMap, backwardEdges map[HashAddr]HashAddr) {
