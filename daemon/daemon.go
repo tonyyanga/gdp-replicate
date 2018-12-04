@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
 	"github.com/tonyyanga/gdp-replicate/peers"
@@ -10,13 +9,21 @@ import (
 )
 
 type Daemon struct {
-	replicationNetworkManager peers.ReplicateNetworkMgr
-	policy                    *policy.Policy
-	conn                      gdplogd.LogDaemonConnection
+	httpAddr string
+	network  peers.ReplicateNetworkMgr
+	policy   policy.Policy
+	conn     gdplogd.LogDaemonConnection
+	// Controls the randomness of sending heart beats to peers
+	heartBeatState int
+	peerList       []gdplogd.HashAddr
 }
 
 // NewDaemon initializes Daemon for a log
-func NewDaemon(sqlFile string, peerAddrMap map[gdplogd.HashAddr]string) (Daemon, error) {
+func NewDaemon(
+	httpAddr,
+	sqlFile string,
+	peerAddrMap map[gdplogd.HashAddr]string,
+) (Daemon, error) {
 	db, err := sql.Open("sqlite3", sqlFile)
 	var graphAddr gdplogd.HashAddr
 
@@ -31,17 +38,24 @@ func NewDaemon(sqlFile string, peerAddrMap map[gdplogd.HashAddr]string) (Daemon,
 	}
 	policy := policy.NewGraphDiffPolicy(conn, "policy-name", *graph)
 
+	// Create list of peers
+	peerList := make([]gdplogd.HashAddr, len(peerAddrMap))
+	for peer := range peerAddrMap {
+		peerList = append(peerList, peer)
+	}
+
 	return Daemon{
-		replicationNetworkManager: peers.NewSimpleReplicateMgr(peerAddrMap),
-		conn:                      conn,
-		policy:                    policy,
+		httpAddr:       httpAddr,
+		network:        peers.NewSimpleReplicateMgr(peerAddrMap),
+		policy:         policy,
+		conn:           conn,
+		heartBeatState: 0,
+		peerList:       peerList,
 	}, nil
 }
 
+// Start begins listening for and sending heartbeats.
 func (daemon Daemon) start() {
-	daemon.replicationNetworkManager.ListenAndServe(":5000", msgPrinter)
-}
-
-func msgPrinter(msg *policy.Message) {
-	fmt.Printf("received %s\n", *msg)
+	go daemon.network.ListenAndServe(daemon.httpAddr, msgPrinter)
+	go daemon.scheduleHeartBeat(2)
 }
