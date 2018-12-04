@@ -24,6 +24,7 @@ func NewSimpleReplicateMgr(peerAddrMap map[gdplogd.HashAddr]string) *SimpleRepli
 	}
 }
 
+// ListenAndServe serves HTTP request at ADDRESS with HANDLER
 func (mgr *SimpleReplicateMgr) ListenAndServe(address string, handler func(msg *policy.Message)) error {
 	// msgHandler translates HTTP to messages
 	msgHandler := func(w http.ResponseWriter, req *http.Request) {

@@ -30,7 +30,7 @@ type LogDaemonConnector struct {
 }
 
 // InitLogDaemonConnector initializes LogDaemonConnector and its LogGraph.
-func InitLogDaemonConnector(db *sql.DB) (LogDaemonConnector, error) {
+func InitLogDaemonConnector(db *sql.DB, name string) (LogDaemonConnector, error) {
 	var conn LogDaemonConnector
 	conn.db = db
 	conn.graphs = make(map[string]LogGraphWrapper)
@@ -39,7 +39,7 @@ func InitLogDaemonConnector(db *sql.DB) (LogDaemonConnector, error) {
 	if err != nil {
 		return conn, err
 	}
-	conn.graphs["default"] = logGraph
+	conn.graphs[name] = logGraph
 	return conn, nil
 }
 
