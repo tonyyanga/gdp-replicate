@@ -25,7 +25,33 @@ func addrListToReader(addrs []gdplogd.HashAddr, buf *bytes.Buffer) {
 // First, length of the array will be read, followed by a \n
 // Then the byte array is read and returned
 func addrListFromReader(buf io.Reader) ([]gdplogd.HashAddr, error) {
-    // TODO
+    reader := bufio.NewReader(buf)
+
+    length_ , err := reader.ReadBytes('\n')
+    if err != nil {
+        return nil, err
+    }
+    length_ = length_[:len(length_) - 1]
+
+    length, err := strconv.Atoi(string(length_))
+    if err != nil {
+        return nil, err
+    }
+
+    if length < 0 {
+        return nil, fmt.Errorf("Negative length message received")
+    }
+
+    result := make([]gdplogd.HashAddr, length)
+
+    for i := 0; i < length; i++ {
+        _, err = io.ReadFull(reader, result[i][:])
+        if err != nil {
+            return nil, err
+        }
+    }
+
+    return result, nil
 }
 
 // Process begins and ends section, includes "begins\n", "ends\n"
@@ -54,4 +80,13 @@ func processBeginsEnds(body io.Reader) ([]gdplogd.HashAddr, []gdplogd.HashAddr, 
     }
 
     return peerBegins, peerEnds, nil
+}
+
+// Convert slice to map
+func addrSliceToMap(s []gdplogd.HashAddr) map[gdplogd.HashAddr]int {
+    result := make(map[gdplogd.HashAddr]int)
+    for _, item := range s {
+        result[item] = 1
+    }
+    return result
 }
