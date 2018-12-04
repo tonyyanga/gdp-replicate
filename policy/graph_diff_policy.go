@@ -46,7 +46,9 @@ const (
 // See algorithm spec on Dropbox Paper for more details
 // TODO(tonyyanga): move the algorithm here
 type GraphDiffPolicy struct {
-    conn *gdplogd.LogDaemonConnection // connection
+    conn gdplogd.LogDaemonConnection // connection
+
+    name string // name for the graph
 
     currentGraph gdplogd.LogGraphWrapper // most up to date graph
 
@@ -64,17 +66,16 @@ type GraphDiffPolicy struct {
 
 // Context for a specific peer
 type peerPolicyContext struct {
-    conn *gdplogd.LogDaemonConnection
-
     graph gdplogd.LogGraphWrapper
 
     policy *GraphDiffPolicy
 }
 
 // Constructor with log daemon connection and initial graph
-func NewGraphDiffPolicy(conn *gdplogd.LogDaemonConnection, graph gdplogd.LogGraphWrapper) *GraphDiffPolicy {
+func NewGraphDiffPolicy(conn gdplogd.LogDaemonConnection, name string, graph gdplogd.LogGraphWrapper) *GraphDiffPolicy {
     return &GraphDiffPolicy{
         conn: conn,
+        name: name,
         currentGraph: graph,
         graphInUse: make(map[gdplogd.HashAddr]gdplogd.LogGraphWrapper),
         peerLastMsgType: make(map[gdplogd.HashAddr]PeerState),
@@ -82,7 +83,7 @@ func NewGraphDiffPolicy(conn *gdplogd.LogDaemonConnection, graph gdplogd.LogGrap
     }
 }
 
-func (policy *GraphDiffPolicy) getLogDaemonConnection() *gdplogd.LogDaemonConnection {
+func (policy *GraphDiffPolicy) getLogDaemonConnection() gdplogd.LogDaemonConnection {
     return policy.conn
 }
 
@@ -325,7 +326,7 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
         }
     }
 
-    for _, end := range myBeginsNotMatched {
+    for _, end := range myEndsNotMatched {
         if _, found := myBeginsEndsToSend[end]; !found {
             // Add the connected component to nodesToSend
             nodesToSend = append(nodesToSend, end)

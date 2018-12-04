@@ -2,6 +2,9 @@ package policy
 
 import (
     "io"
+    "bytes"
+    "bufio"
+    "strconv"
 
     "github.com/tonyyanga/gdp-replicate/gdplogd"
 )
@@ -9,7 +12,6 @@ import (
 // Get peer policy context
 func (policy *GraphDiffPolicy) getPeerPolicyContext(peer gdplogd.HashAddr) *peerPolicyContext {
     return &peerPolicyContext {
-        conn: policy.conn,
         graph: policy.graphInUse[peer],
         policy: policy,
     }
@@ -51,21 +53,104 @@ func (ctx *peerPolicyContext) getConnectedAddrs(addrs []gdplogd.HashAddr) []gdpl
 
 // Write a data section, not including "data\n", from a list of hash addresses requested
 // Returns an error if some of the hash address are not available
-func (ctx *peerPolicyContext) constructDataSection(addrs []gdplogd.HashAddr, dest io.Writer) error {
-    // TODO
+func (ctx *peerPolicyContext) constructDataSection(addrs []gdplogd.HashAddr, dest *bytes.Buffer) error {
+    // First, write how many items to expect
+    dest.WriteString(strconv.Itoa(len(addrs)))
+    dest.WriteString("\n")
+    for _, addr := range addrs {
+        dataReader, err := ctx.policy.conn.ReadLogItem(ctx.policy.name, addr)
+        if err != nil {
+            return err
+        }
+
+        // Timestamp and other Metadata should be included TODO
+
+        var data bytes.Buffer
+        _, err = data.ReadFrom(dataReader)
+        if err != nil {
+            return err
+        }
+
+        // First, length of the data portion
+        dest.WriteString(strconv.Itoa(data.Len()))
+        dest.WriteString("\n")
+
+        // Second, write the 32 byte address
+        dest.Write(addr[:])
+
+        // Third, write actual data
+        dest.ReadFrom(&data)
+    }
+
+    return nil
 }
 
 // Process data section of the message and update the current graph accordingly
 // Assume that "data\n" is already consumed
 func (ctx *peerPolicyContext) processDataSection(body io.Reader) {
-    // TODO
+    // TODO: proper error reporting should be in place
+
+    reader := bufio.NewReader(body)
+
+    length_, err := reader.ReadBytes('\n')
+    if err != nil {
+        return
+    }
+    length_ = length_[:len(length_) - 1]
+
+    length, err := strconv.Atoi(string(length_))
+    if err != nil {
+        return
+    }
+
+    for ; length > 0; length-- {
+        // Read an individual block
+        dataLength_, err := reader.ReadBytes('\n')
+        if err != nil {
+            return
+        }
+        dataLength_ = dataLength_[:len(dataLength_) - 1]
+
+        dataLength, err := strconv.Atoi(string(dataLength_))
+        if err != nil {
+            return
+        }
+
+        var addr gdplogd.HashAddr
+        _, err = io.ReadFull(reader, addr[:])
+        if err != nil {
+            return
+        }
+
+        data := make([]byte, dataLength)
+        _, err = io.ReadFull(reader, data)
+        if err != nil {
+            return
+        }
+
+        ctx.tryStoreData(addr, data)
+    }
 }
 
 // Try to store the data at addr
 // Return whether the data is stored via this call, or already in gdplogd
 func (ctx *peerPolicyContext) tryStoreData(addr gdplogd.HashAddr, data []byte) bool {
-    // TODO
-    return true
+    conn := ctx.policy.conn
+    name := ctx.policy.name
+
+    // Update the graph
+    // TODO: call refresh graph interface
+
+    // Update the connection
+    if conn.ContainsLogItem(name, addr) {
+        return false
+    } else {
+        // TODO: proper error handling
+        conn.WriteLogItem(name, addr, &gdplogd.LogMetadata{
+            // TODO
+        }, bufio.NewReader(data))
+    }
+
 }
 
 // Traverse ahead in the graph starting from "start". Traversal on a certain path ends when meeting a node in
@@ -127,7 +212,7 @@ func (ctx *peerPolicyContext) _searchAfter(start gdplogd.HashAddr, terminals map
     for _, node := range after {
         visited_, localEnds_ := ctx._searchAfter(node, terminals)
         visited = append(visited, visited_...)
-        localEnds = append(localEnds, localEnds...)
+        localEnds = append(localEnds, localEnds_...)
     }
 
     return visited, localEnds
