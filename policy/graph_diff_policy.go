@@ -212,7 +212,7 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAdd
     graph := policy.graphInUse[src]
     nodeMap := graph.GetNodeMap()
 
-    var nodesToSend []gdplogd.HashAddr
+    nodesToSend := make([]gdplogd.HashAddr, 0)
 
     for _, begin := range peerBeginsNotMatched {
         if _, found := nodeMap[begin]; found {
@@ -281,10 +281,10 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
     graph := policy.graphInUse[src]
     nodeMap := graph.GetNodeMap()
 
-    var nodesToSend []gdplogd.HashAddr
-    var requests []gdplogd.HashAddr
+    nodesToSend := make([]gdplogd.HashAddr, 0)
+    requests := make([]gdplogd.HashAddr, 0)
 
-    var myBeginsEndsToSend map[gdplogd.HashAddr]int
+    myBeginsEndsToSend := make(map[gdplogd.HashAddr]int)
 
     for _, begin := range peerBeginsNotMatched {
         if _, found := nodeMap[begin]; found {
