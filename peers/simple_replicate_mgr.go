@@ -2,7 +2,9 @@ package peers
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
@@ -12,11 +14,11 @@ import (
 // Simple Replication Manager that directly connects to peers
 type SimpleReplicateMgr struct {
 	// Store the IP:Port address for each peer
-	PeerAddrMap map[HashAddr]string
+	PeerAddrMap map[gdplogd.HashAddr]string
 }
 
 // Constructor for SimpleReplicateMgr
-func NewSimpleReplicateMgr(peerAddrMap map[HashAddr]string) *SimpleReplicateMgr {
+func NewSimpleReplicateMgr(peerAddrMap map[gdplogd.HashAddr]string) *SimpleReplicateMgr {
 	return &SimpleReplicateMgr{
 		PeerAddrMap: peerAddrMap,
 	}
@@ -24,7 +26,7 @@ func NewSimpleReplicateMgr(peerAddrMap map[HashAddr]string) *SimpleReplicateMgr 
 
 func (mgr *SimpleReplicateMgr) ListenAndServe(address string, handler func(msg *policy.Message)) error {
 	// msgHandler translates HTTP to messages
-	msgHander := func(w http.ResponseWriter, req *http.Request) {
+	msgHandler := func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "POST" {
 			http.Error(w, "Only POST requests are supported", 500)
 			return
@@ -43,9 +45,10 @@ func (mgr *SimpleReplicateMgr) ListenAndServe(address string, handler func(msg *
 		}
 
 		msg := &policy.Message{
-			Type: msgType,
+			Type: policy.MessageType(msgType),
 			Body: req.Body,
 		}
+		handler(msg)
 
 		io.WriteString(w, "Accepted")
 	}
@@ -64,10 +67,13 @@ func (mgr *SimpleReplicateMgr) Send(peer gdplogd.HashAddr, msg *policy.Message) 
 	c := &http.Client{}
 
 	// Construct HTTP request
-	req := http.NewRequest("POST", "http://"+ipAddr, msg.Body)
+	req, err := http.NewRequest("POST", "http://"+ipAddr, msg.Body)
+	if err != nil {
+		return err
+	}
 	req.Header.Add("MessageType", fmt.Sprint(msg.Type))
 
-	resp, err := c.Do(c)
+	resp, err := c.Do(req)
 	if err != nil {
 		return err
 	}
@@ -84,16 +90,22 @@ func (mgr *SimpleReplicateMgr) Broadcast(msg *policy.Message) map[gdplogd.HashAd
 	ret := &sync.Map{}
 	wg := &sync.WaitGroup{}
 
-	for k := range mgr.PeerAddrMap {
+	for peer := range mgr.PeerAddrMap {
 		wg.Add(1)
-		go func() {
+		go func(peer gdplogd.HashAddr) {
 			defer wg.Done()
 
 			err := mgr.Send(peer, msg)
-			ret.Store(k, err)
-		}()
+			ret.Store(peer, err)
+		}(peer)
 	}
 
 	wg.Wait()
-	return ret
+
+	exportMap := make(map[gdplogd.HashAddr]error)
+	ret.Range(func(key, value interface{}) bool {
+		exportMap[key.(gdplogd.HashAddr)] = value.(error)
+		return true
+	})
+	return exportMap
 }
