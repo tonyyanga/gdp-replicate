@@ -129,9 +129,8 @@ func (logGraph *LogGraph) CalcLogicalBegins() {
 }
 
 // Return all log entries in the database
-func (logGraph *LogGraph) GetAllLogs() ([]LogEntryMetadata, error) {
-	db := logGraph.db
-	rows, err := db.Query("select hash, recno, timestamp, accuracy, prevhash, sig from log_entry")
+func (logGraph LogGraph) GetAllLogs() ([]LogEntryMetadata, error) {
+	rows, err := logGraph.db.Query("select hash, recno, timestamp, accuracy, prevhash, sig from log_entry")
 	if err != nil {
 		return nil, err
 	}
@@ -162,6 +161,7 @@ func (logGraph *LogGraph) GetAllLogs() ([]LogEntryMetadata, error) {
 			copy(logEntry.PrevHash[:], prevHashHolder[0:32])
 		}
 
+		fmt.Printf("Parsed %x\n", logEntry.Hash)
 		logEntries = append(logEntries, logEntry)
 	}
 
@@ -169,7 +169,7 @@ func (logGraph *LogGraph) GetAllLogs() ([]LogEntryMetadata, error) {
 }
 
 // Return log entry with hash
-func (logGraph *LogGraph) GetLog(hash []byte) (LogEntryMetadata, error) {
+func (logGraph LogGraph) GetLog(hash []byte) (LogEntryMetadata, error) {
 	db := logGraph.db
 	var logEntry LogEntryMetadata
 
@@ -197,7 +197,7 @@ func (logGraph *LogGraph) GetLog(hash []byte) (LogEntryMetadata, error) {
 }
 
 // Determine if a log entry with a specific hash is present in the database
-func (logGraph *LogGraph) HashPresent(hash HashAddr) (bool, error) {
+func (logGraph LogGraph) HashPresent(hash HashAddr) (bool, error) {
 	db := logGraph.db
 	queryString := fmt.Sprintf("select count(hash) from log_entry where hex(hash) == '%X'\n", hash)
 	rows, err := db.Query(queryString)
@@ -216,7 +216,7 @@ func (logGraph *LogGraph) HashPresent(hash HashAddr) (bool, error) {
 }
 
 // Add LogEntries to the database.
-func (logGraph *LogGraph) AppendLogEntry(logEntries []LogEntryMetadata) error {
+func (logGraph LogGraph) AppendLogEntry(logEntries []LogEntryMetadata) error {
 	db := logGraph.db
 	tx, err := db.Begin()
 	if err != nil {

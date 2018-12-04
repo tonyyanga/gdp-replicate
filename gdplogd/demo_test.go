@@ -4,12 +4,15 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-// Demonstrate the LogGraphWrapper
-func Demo() {
-	fmt.Println("demoing")
+const SQL_FILE = "/home/scott/go/src/github.com/tonyyanga/gdp-replicate/gdplogd/sample.glog"
 
+// Demonstrate the LogGraphWrapper func Demo() { fmt.Println("demoing")
+func Demo() {
 	var log LogGraphWrapper
 	log, _ = InitFakeGraph()
 
@@ -40,7 +43,7 @@ func Demo() {
 
 // Demonstrate the ability to create, write to and read from a database.
 func SqlDemo() {
-	db, err := sql.Open("sqlite3", "./gdplogd/sample.glog")
+	db, err := sql.Open("sqlite3", SQL_FILE)
 	checkError(err)
 	defer db.Close()
 
@@ -60,4 +63,28 @@ func checkError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func TestConn(t *testing.T) {
+	db, err := sql.Open("sqlite3", SQL_FILE)
+	assert.Nil(t, err)
+	defer db.Close()
+
+	conn, err := InitLogDaemonConnector(db)
+	assert.Nil(t, err)
+
+	// Check empty hash not present
+	present, err := conn.ContainsLogItem("", HashAddr{})
+	assert.False(t, present)
+	assert.Nil(t, err)
+
+	graph, err := conn.GetGraph("default")
+	assert.Nil(t, err)
+
+	hash := (*graph).GetLogicalBegins()[0]
+
+	// Check hash end is present
+	present, err = conn.ContainsLogItem("", hash)
+	assert.True(t, present)
+	assert.Nil(t, err)
 }
