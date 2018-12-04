@@ -3,10 +3,12 @@ package gdplogd
 import (
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const SQL_FILE = "/home/scott/go/src/github.com/tonyyanga/gdp-replicate/gdplogd/sample.glog"
@@ -65,7 +67,7 @@ func checkError(err error) {
 	}
 }
 
-func TestConn(t *testing.T) {
+func TestContainsLogItem(t *testing.T) {
 	db, err := sql.Open("sqlite3", SQL_FILE)
 	assert.Nil(t, err)
 	defer db.Close()
@@ -83,8 +85,32 @@ func TestConn(t *testing.T) {
 
 	hash := (*graph).GetLogicalBegins()[0]
 
-	// Check hash end is present
+	// Check hash is present
 	present, err = conn.ContainsLogItem("", hash)
 	assert.True(t, present)
 	assert.Nil(t, err)
+
+	// Read metadata
+	logEntry, err := conn.ReadLogMetadata("", hash)
+	require.Nil(t, err)
+	assert.NotNil(t, logEntry)
+	assert.Equal(t, logEntry.Hash, hash)
+
+	logReader, err := conn.ReadLogItem("", hash)
+	require.Nil(t, err)
+	value, err := ioutil.ReadAll(logReader)
+	assert.NotEqual(t, 0, len(value))
+}
+
+func TestGraphs(t *testing.T) {
+	db, err := sql.Open("sqlite3", SQL_FILE)
+	assert.Nil(t, err)
+	defer db.Close()
+
+	conn, err := InitLogDaemonConnector(db)
+	assert.Nil(t, err)
+
+	graph, err := conn.GetGraph("default")
+	assert.Nil(t, err)
+	assert.NotNil(t, graph)
 }

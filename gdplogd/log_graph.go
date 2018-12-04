@@ -161,7 +161,6 @@ func (logGraph LogGraph) GetAllLogs() ([]LogEntryMetadata, error) {
 			copy(logEntry.PrevHash[:], prevHashHolder[0:32])
 		}
 
-		fmt.Printf("Parsed %x\n", logEntry.Hash)
 		logEntries = append(logEntries, logEntry)
 	}
 

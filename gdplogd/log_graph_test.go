@@ -18,7 +18,11 @@ func TestLogGraph(t *testing.T) {
 	require.Nil(t, err)
 
 	assert.NotEqual(t, 0, len(log.logEntries))
+	assert.NotEqual(t, 0, len(log.GetLogicalBegins()))
+	assert.NotEqual(t, 0, len(log.GetLogicalEnds()))
+}
 
+func printLogGraph(log LogGraphWrapper) {
 	fmt.Println("Actual Pointer Map:")
 	for key, val := range log.GetActualPtrMap() {
 		fmt.Printf("%x -> %x\n", key, val)
@@ -36,12 +40,9 @@ func TestLogGraph(t *testing.T) {
 	for _, hash := range log.GetLogicalBegins() {
 		fmt.Printf("%x\n", hash)
 	}
-	assert.NotEqual(t, 0, len(log.GetLogicalBegins()))
-	assert.NotEqual(t, 0, len(log.GetLogicalEnds()))
 
 	fmt.Println("Logical Ends:")
 	for _, hash := range log.GetLogicalEnds() {
 		fmt.Printf("%x\n", hash)
 	}
-
 }
