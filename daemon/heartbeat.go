@@ -28,7 +28,7 @@ func (daemon Daemon) sendHeartBeat(peer gdplogd.HashAddr) error {
 		return nil
 	}
 
-	return daemon.network.Send(peer, msg)
+	return daemon.network.Send(daemon.myAddr, peer, msg)
 }
 
 // Send a heartbeat message to one of daemon peers.

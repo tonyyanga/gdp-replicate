@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
@@ -11,10 +12,10 @@ import (
 
 // Message Types, four messages are required in chronological order
 const (
-	first = 0
-	second
-	third
-	fourth
+	first  = 0
+	second = 1
+	third  = 2
+	fourth = 3
 )
 
 /*
@@ -142,6 +143,8 @@ func (policy *GraphDiffPolicy) GenerateMessage(dest gdplogd.HashAddr) *Message {
 	buf.WriteString("ends\n")
 	addrListToReader(policy.currentGraph.GetLogicalEnds(), &buf)
 
+	log.Printf("Generate msg %v", first)
+
 	return &Message{
 		Type: first,
 		Body: &buf,
@@ -195,18 +198,20 @@ func (policy *GraphDiffPolicy) ProcessMessage(msg *Message, src gdplogd.HashAddr
 // Below are handlers for specific messages
 // Handlers assume the mutex of the src is held by caller
 func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAddr) *Message {
-	ctx := policy.getPeerPolicyContext(src)
-
+	log.Println("Processing 1st msg")
 	peerBegins, peerEnds, err := processBeginsEnds(msg.Body)
 
 	if err != nil {
 		// Message corrupted
+		log.Printf("%v", err)
 		policy.resetPeerStatus(src)
 		return nil
 	}
 
 	policy.graphInUse[src] = policy.currentGraph
 	policy.peerLastMsgType[src] = firstMsgRecved
+
+	ctx := policy.getPeerPolicyContext(src)
 
 	// Now that we have peer begins and ends, we start processing
 	_, _, peerBeginsNotMatched, peerEndsNotMatched := ctx.compareBeginsEnds(peerBegins, peerEnds)
@@ -237,6 +242,7 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAdd
 	err = ctx.constructDataSection(nodesToSend, &buf)
 	if err != nil {
 		policy.resetPeerStatus(src)
+		log.Printf("%v", err)
 		return nil
 	}
 
@@ -247,6 +253,7 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAdd
 	addrListToReader(graph.GetLogicalEnds(), &buf)
 
 	policy.peerLastMsgType[src] = firstMsgRecved
+	log.Printf("Generate msg %v", second)
 
 	return &Message{
 		Type: second,
@@ -349,6 +356,7 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 
 	policy.peerLastMsgType[src] = thirdMsgSent
 
+	log.Printf("Generate msg %v", third)
 	return &Message{
 		Type: third,
 		Body: &buf,
@@ -400,6 +408,7 @@ func (policy *GraphDiffPolicy) processThirdMsg(msg *Message, src gdplogd.HashAdd
 	ctx.processDataSection(reader)
 
 	policy.peerLastMsgType[src] = thirdMsgRecved
+	log.Printf("Generate msg %v", fourth)
 
 	return ret
 }

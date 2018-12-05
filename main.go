@@ -18,10 +18,14 @@ func main() {
 	peerMap := make(map[gdplogd.HashAddr]string)
 	peerMap[peer] = peerAddr
 
-	d, err := daemon.NewDaemon(listenAddr, sqlFile, peerMap)
+	d, err := daemon.NewDaemon(listenAddr, sqlFile, peer /* same address in a pair */, peerMap)
 	if err != nil {
 		panic(err)
 	}
 
-	d.Start()
+	err = d.Start()
+	if err != nil {
+		panic(err)
+	}
+
 }

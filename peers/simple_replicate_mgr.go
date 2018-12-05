@@ -1,6 +1,7 @@
 package peers
 
 import (
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,7 +26,7 @@ func NewSimpleReplicateMgr(peerAddrMap map[gdplogd.HashAddr]string) *SimpleRepli
 }
 
 // ListenAndServe serves HTTP request at ADDRESS with HANDLER
-func (mgr *SimpleReplicateMgr) ListenAndServe(address string, handler func(msg *policy.Message)) error {
+func (mgr *SimpleReplicateMgr) ListenAndServe(address string, handler func(src gdplogd.HashAddr, msg *policy.Message)) error {
 	// msgHandler translates HTTP to messages
 	msgHandler := func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "POST" {
@@ -39,6 +40,18 @@ func (mgr *SimpleReplicateMgr) ListenAndServe(address string, handler func(msg *
 			return
 		}
 
+		src := req.Header.Get("Source")
+		if src == "" {
+			http.Error(w, "Expect Source in header", 500)
+			return
+		}
+
+		src_, err := hex.DecodeString(src)
+		if err != nil {
+			http.Error(w, "Corrupted Source", 500)
+			return
+		}
+
 		msgType, err := strconv.Atoi(msgTypeStr)
 		if err != nil {
 			http.Error(w, "Corrupted MessageType in header", 500)
@@ -49,7 +62,10 @@ func (mgr *SimpleReplicateMgr) ListenAndServe(address string, handler func(msg *
 			Type: policy.MessageType(msgType),
 			Body: req.Body,
 		}
-		handler(msg)
+
+		var srcAddr gdplogd.HashAddr
+		copy(srcAddr[:], src_[:32])
+		handler(srcAddr, msg)
 
 		io.WriteString(w, "Accepted")
 	}
@@ -58,7 +74,7 @@ func (mgr *SimpleReplicateMgr) ListenAndServe(address string, handler func(msg *
 	return http.ListenAndServe(address, nil)
 }
 
-func (mgr *SimpleReplicateMgr) Send(peer gdplogd.HashAddr, msg *policy.Message) error {
+func (mgr *SimpleReplicateMgr) Send(src, peer gdplogd.HashAddr, msg *policy.Message) error {
 	// Look up peer's actual IP address
 	ipAddr, ok := mgr.PeerAddrMap[peer]
 	if !ok {
@@ -73,8 +89,10 @@ func (mgr *SimpleReplicateMgr) Send(peer gdplogd.HashAddr, msg *policy.Message) 
 		return err
 	}
 	req.Header.Add("MessageType", fmt.Sprint(msg.Type))
+	req.Header.Add("Source", hex.EncodeToString(src[:]))
 
 	resp, err := c.Do(req)
+
 	if err != nil {
 		return err
 	}
@@ -86,7 +104,7 @@ func (mgr *SimpleReplicateMgr) Send(peer gdplogd.HashAddr, msg *policy.Message) 
 	return nil
 }
 
-func (mgr *SimpleReplicateMgr) Broadcast(msg *policy.Message) map[gdplogd.HashAddr]error {
+func (mgr *SimpleReplicateMgr) Broadcast(src gdplogd.HashAddr, msg *policy.Message) map[gdplogd.HashAddr]error {
 	// Dispatch several Send at the same time
 	ret := &sync.Map{}
 	wg := &sync.WaitGroup{}
@@ -96,7 +114,7 @@ func (mgr *SimpleReplicateMgr) Broadcast(msg *policy.Message) map[gdplogd.HashAd
 		go func(peer gdplogd.HashAddr) {
 			defer wg.Done()
 
-			err := mgr.Send(peer, msg)
+			err := mgr.Send(src, peer, msg)
 			ret.Store(peer, err)
 		}(peer)
 	}

@@ -10,6 +10,7 @@ import (
 
 type Daemon struct {
 	httpAddr string
+	myAddr   gdplogd.HashAddr
 	network  peers.ReplicateNetworkMgr
 	policy   policy.Policy
 	conn     gdplogd.LogDaemonConnection
@@ -22,6 +23,7 @@ type Daemon struct {
 func NewDaemon(
 	httpAddr,
 	sqlFile string,
+	myHashAddr gdplogd.HashAddr,
 	peerAddrMap map[gdplogd.HashAddr]string,
 ) (Daemon, error) {
 	db, err := sql.Open("sqlite3", sqlFile)
@@ -45,6 +47,7 @@ func NewDaemon(
 
 	return Daemon{
 		httpAddr:       httpAddr,
+		myAddr:         myHashAddr,
 		network:        peers.NewSimpleReplicateMgr(peerAddrMap),
 		policy:         policy,
 		conn:           conn,
@@ -54,8 +57,18 @@ func NewDaemon(
 }
 
 // Start begins listening for and sending heartbeats.
-func (daemon Daemon) Start() {
+func (daemon Daemon) Start() error {
 	go daemon.scheduleHeartBeat(2)
 
-	daemon.network.ListenAndServe(daemon.httpAddr, msgPrinter)
+	//err := daemon.network.ListenAndServe(daemon.httpAddr, msgPrinter)
+	handler := func(src gdplogd.HashAddr, msg *policy.Message) {
+		returnMsg := daemon.policy.ProcessMessage(msg, src)
+
+		if returnMsg != nil {
+			go daemon.network.Send(daemon.myAddr, src, returnMsg)
+		}
+	}
+
+	err := daemon.network.ListenAndServe(daemon.httpAddr, handler)
+	return err
 }

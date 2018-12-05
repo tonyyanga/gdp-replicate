@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"strconv"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
@@ -60,6 +61,8 @@ func processBeginsEnds(body io.Reader) ([]gdplogd.HashAddr, []gdplogd.HashAddr, 
 	line, err := reader.ReadBytes('\n')
 
 	if err != nil || bytes.Compare(line, []byte("begins\n")) != 0 {
+		log.Printf("%v", err)
+		log.Printf("%v", string(line))
 		return nil, nil, fmt.Errorf("Error processing message: begins")
 	}
 
