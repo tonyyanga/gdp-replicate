@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"encoding/binary"
 	"math/rand"
 	"time"
 
@@ -32,16 +33,16 @@ func (daemon Daemon) sendHeartBeat(peer gdplogd.HashAddr) error {
 	if msg == nil {
 		zap.S().Infow(
 			"no heartbeat sent",
-			"src", daemon.myAddr,
-			"dst", peer,
+			"src", binary.BigEndian.Uint64(daemon.myAddr[:]),
+			"dst", binary.BigEndian.Uint64(peer[:]),
 		)
 		return nil
 	}
 
 	zap.S().Infow(
 		"heart beat sent",
-		"src", daemon.myAddr,
-		"dst", peer,
+		"src", binary.BigEndian.Uint64(daemon.myAddr[:]),
+		"dst", binary.BigEndian.Uint64(peer[:]),
 		"msg", msg,
 	)
 	return daemon.network.Send(daemon.myAddr, peer, msg)
