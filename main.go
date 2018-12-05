@@ -11,9 +11,9 @@ func main() {
 	listenAddr := os.Args[1]
 	peerAddr := os.Args[2]
 
-	var peer gdplogd.HashAddr
+	sqlFile := os.Args[3]
 
-	sqlFile := "gdplogd/sample.glog"
+	var peer gdplogd.HashAddr
 
 	peerMap := make(map[gdplogd.HashAddr]string)
 	peerMap[peer] = peerAddr
