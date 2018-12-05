@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
+	"go.uber.org/zap"
 )
 
 // Send a heart beat every INTERVAL seconds
@@ -25,9 +26,20 @@ func (daemon Daemon) sendHeartBeat(peer gdplogd.HashAddr) error {
 
 	// A msg may not need to be sent
 	if msg == nil {
+		zap.S().Infow(
+			"no heartbeat sent",
+			"src", daemon.myAddr,
+			"dst", peer,
+		)
 		return nil
 	}
 
+	zap.S().Infow(
+		"heart beat sent",
+		"src", daemon.myAddr,
+		"dst", peer,
+		"msg", msg,
+	)
 	return daemon.network.Send(daemon.myAddr, peer, msg)
 }
 
