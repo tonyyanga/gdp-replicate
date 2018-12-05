@@ -161,6 +161,9 @@ func (ctx *peerPolicyContext) processDataSection(body io.Reader) {
 		updates = append(updates, metadata)
 	}
 
+	if ctx.graph == nil {
+		panic("")
+	}
 	ctx.graph.AcceptNewLogEntries(updates)
 }
 
@@ -210,10 +213,13 @@ func (ctx *peerPolicyContext) searchAhead(start gdplogd.HashAddr, terminals []gd
 			return visited, localEnds
 		}
 
-		visited = append(visited, prev)
 		current = prev
-
 		prev, found = actualMap[current]
+
+		// Do not store the last pointer on the map
+		if found {
+			visited = append(visited, current)
+		}
 	}
 
 	localEnds = append(localEnds, current)
@@ -244,10 +250,11 @@ func (ctx *peerPolicyContext) _searchAfter(start gdplogd.HashAddr, terminals map
 		return []gdplogd.HashAddr{}, []gdplogd.HashAddr{start}
 	}
 
-	visited := []gdplogd.HashAddr{start}
+	visited := []gdplogd.HashAddr{}
 	localEnds := make([]gdplogd.HashAddr, 0)
 	for _, node := range after {
 		visited_, localEnds_ := ctx._searchAfter(node, terminals)
+		visited = append(visited, node)
 		visited = append(visited, visited_...)
 		localEnds = append(localEnds, localEnds_...)
 	}
