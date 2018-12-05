@@ -8,6 +8,10 @@ import (
 )
 
 func main() {
+	if len(os.Args) < 4 {
+		panic("Requires arguments: listen address, peer address, SQL file")
+	}
+
 	listenAddr := os.Args[1]
 	peerAddr := os.Args[2]
 

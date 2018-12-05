@@ -10,7 +10,11 @@ import (
 
 // Send a heart beat every INTERVAL seconds
 func (daemon Daemon) scheduleHeartBeat(interval int) error {
-	ticker := time.NewTicker(time.Second * 1)
+	zap.S().Infow(
+		"scheduling heartbeat",
+		"interval", interval,
+	)
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for _ = range ticker.C {
 		err := daemon.cycleHeartBeat()
 		if err != nil {
