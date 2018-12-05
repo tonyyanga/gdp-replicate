@@ -161,9 +161,6 @@ func (ctx *peerPolicyContext) processDataSection(body io.Reader) {
 		updates = append(updates, metadata)
 	}
 
-	if ctx.graph == nil {
-		panic("")
-	}
 	ctx.graph.AcceptNewLogEntries(updates)
 }
 

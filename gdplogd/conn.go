@@ -39,7 +39,7 @@ func InitLogDaemonConnector(db *sql.DB, name string) (LogDaemonConnector, error)
 	if err != nil {
 		return conn, err
 	}
-	conn.graphs[name] = logGraph
+	conn.graphs[name] = &logGraph
 	return conn, nil
 }
 
