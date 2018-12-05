@@ -60,7 +60,6 @@ func NewDaemon(
 func (daemon Daemon) Start() error {
 	go daemon.scheduleHeartBeat(2)
 
-	//err := daemon.network.ListenAndServe(daemon.httpAddr, msgPrinter)
 	handler := func(src gdplogd.HashAddr, msg *policy.Message) {
 		returnMsg := daemon.policy.ProcessMessage(msg, src)
 

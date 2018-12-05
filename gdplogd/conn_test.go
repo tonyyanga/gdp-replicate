@@ -13,36 +13,6 @@ import (
 
 const SQL_FILE = "/home/scott/go/src/github.com/tonyyanga/gdp-replicate/gdplogd/sample.glog"
 
-// Demonstrate the LogGraphWrapper func Demo() { fmt.Println("demoing")
-func Demo() {
-	var log LogGraphWrapper
-	log, _ = InitFakeGraph()
-
-	fmt.Println("Actual Pointer Map:")
-	for key, val := range log.GetActualPtrMap() {
-		fmt.Printf("%x -> %x\n", key, val)
-	}
-
-	fmt.Println("Logical Pointer Map:")
-	for key, hashes := range log.GetLogicalPtrMap() {
-		fmt.Printf("\n%x -> \n", key)
-		for _, hash := range hashes {
-			fmt.Printf("\t%x\n", hash)
-		}
-	}
-
-	fmt.Println("Logical Begins:")
-	for _, hash := range log.GetLogicalBegins() {
-		fmt.Printf("%x\n", hash)
-	}
-
-	fmt.Println("Logical Ends:")
-	for _, hash := range log.GetLogicalEnds() {
-		fmt.Printf("%x\n", hash)
-	}
-
-}
-
 // Demonstrate the ability to create, write to and read from a database.
 func SqlDemo() {
 	db, err := sql.Open("sqlite3", SQL_FILE)
@@ -51,7 +21,8 @@ func SqlDemo() {
 
 	var log LogGraphWrapper
 
-	log, err = InitLogGraph([32]byte{}, db)
+	logGraph, err := InitLogGraph([32]byte{}, db)
+	log = &logGraph
 	checkError(err)
 
 	fmt.Println("Logical Begins:")
@@ -72,7 +43,7 @@ func TestContainsLogItem(t *testing.T) {
 	assert.Nil(t, err)
 	defer db.Close()
 
-	conn, err := InitLogDaemonConnector(db)
+	conn, err := InitLogDaemonConnector(db, "")
 	assert.Nil(t, err)
 
 	// Check empty hash not present
@@ -80,7 +51,7 @@ func TestContainsLogItem(t *testing.T) {
 	assert.False(t, present)
 	assert.Nil(t, err)
 
-	graph, err := conn.GetGraph("default")
+	graph, err := conn.GetGraph("")
 	assert.Nil(t, err)
 
 	hash := (*graph).GetLogicalBegins()[0]
@@ -107,7 +78,7 @@ func TestGraphs(t *testing.T) {
 	assert.Nil(t, err)
 	defer db.Close()
 
-	conn, err := InitLogDaemonConnector(db)
+	conn, err := InitLogDaemonConnector(db, "default")
 	assert.Nil(t, err)
 
 	graph, err := conn.GetGraph("default")
