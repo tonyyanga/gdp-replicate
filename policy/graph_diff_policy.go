@@ -198,7 +198,6 @@ func (policy *GraphDiffPolicy) ProcessMessage(msg *Message, src gdplogd.HashAddr
 // Below are handlers for specific messages
 // Handlers assume the mutex of the src is held by caller
 func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAddr) *Message {
-	log.Println("Processing 1st msg")
 	peerBegins, peerEnds, err := processBeginsEnds(msg.Body)
 
 	if err != nil {
@@ -277,7 +276,7 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 
 	// Since the data section has been used to update the graph, we can compare digest of the
 	// peer's graph with up-to-date information
-	peerBegins, peerEnds, err := processBeginsEnds(msg.Body)
+	peerBegins, peerEnds, err := processBeginsEnds(reader)
 
 	if err != nil {
 		// Message corrupted
