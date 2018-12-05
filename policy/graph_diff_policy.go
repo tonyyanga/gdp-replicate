@@ -96,6 +96,7 @@ func (policy *GraphDiffPolicy) initPeerIfNeeded(peer gdplogd.HashAddr) {
 	mutex, ok := policy.peerMutex[peer]
 	if !ok {
 		policy.peerMutex[peer] = &sync.Mutex{}
+		mutex = policy.peerMutex[peer]
 	}
 
 	mutex.Lock()

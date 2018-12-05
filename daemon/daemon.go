@@ -25,7 +25,6 @@ func NewDaemon(
 	peerAddrMap map[gdplogd.HashAddr]string,
 ) (Daemon, error) {
 	db, err := sql.Open("sqlite3", sqlFile)
-	var graphAddr gdplogd.HashAddr
 
 	conn, err := gdplogd.InitLogDaemonConnector(db, "default")
 	if err != nil {
@@ -55,7 +54,8 @@ func NewDaemon(
 }
 
 // Start begins listening for and sending heartbeats.
-func (daemon Daemon) start() {
-	go daemon.network.ListenAndServe(daemon.httpAddr, msgPrinter)
+func (daemon Daemon) Start() {
 	go daemon.scheduleHeartBeat(2)
+
+	daemon.network.ListenAndServe(daemon.httpAddr, msgPrinter)
 }

@@ -33,7 +33,7 @@ type Policy interface {
 	// Get the LogDaemonConnection, implemention should support it
 	// Implementations can use this connection to retrieve specific
 	// data items from the graph
-	getLogDaemonConnection() *gdplogd.LogDaemonConnection
+	getLogDaemonConnection() gdplogd.LogDaemonConnection
 
 	// Accept a new graph
 	// The new graph might not be immediately in effect, if message
