@@ -35,10 +35,8 @@ type Policy interface {
 	// data items from the graph
 	getLogDaemonConnection() gdplogd.LogDaemonConnection
 
-	// Accept a new graph
-	// The new graph might not be immediately in effect, if message
-	// exchange with some peers are still in progress
-	AcceptNewGraph(graph gdplogd.LogGraphWrapper)
+	// UpdateeCurrGraph updates the policy's view of the log
+	UpdateCurrGraph() error
 
 	// Generate message to be sent to a server at dest
 	// Used to begin the state machine with a peer at certain timeout

@@ -26,6 +26,8 @@ func (daemon Daemon) scheduleHeartBeat(interval int, heartBeat heartBeatSender) 
 
 // Sends a heartbeat message to PEER if necessary
 func (daemon Daemon) sendHeartBeat(peer gdplogd.HashAddr) error {
+	// Update the graph view before generating message
+	daemon.policy.UpdateCurrGraph()
 	msg := daemon.policy.GenerateMessage(peer)
 
 	// A msg may not need to be sent
