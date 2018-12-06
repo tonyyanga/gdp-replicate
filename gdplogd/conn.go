@@ -3,7 +3,6 @@ package gdplogd
 import (
 	"bytes"
 	"database/sql"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,7 +14,7 @@ import (
 type LogDaemonConnection interface {
 	GetGraphs() (map[string]LogGraphWrapper, error)
 
-	GetGraph(name string) (*LogGraphWrapper, error)
+	GetGraph(name string) (LogGraphWrapper, error)
 
 	ReadLogMetadata(name string, addr HashAddr) (*LogEntryMetadata, error)
 	ReadLogItem(name string, addr HashAddr) (io.Reader, error)
@@ -51,12 +50,9 @@ func (conn LogDaemonConnector) GetGraphs() (map[string]LogGraphWrapper, error) {
 }
 
 // GetGraph returns the graph representation of NAME database
-func (conn LogDaemonConnector) GetGraph(name string) (*LogGraphWrapper, error) {
-	lgw, present := conn.graphs[name]
-	if !present {
-		return nil, errors.New("Missing key for graph")
-	}
-	return &lgw, nil
+func (conn LogDaemonConnector) GetGraph(name string) (LogGraphWrapper, error) {
+	newGraph, err := InitLogGraph(HashAddr{}, conn.db)
+	return &newGraph, err
 }
 
 // ReadLogMetadata returns the log entry metadata with ADDR from database with NAME.

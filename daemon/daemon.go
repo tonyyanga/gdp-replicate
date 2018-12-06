@@ -38,7 +38,7 @@ func NewDaemon(
 	if err != nil {
 		return Daemon{}, err
 	}
-	policy := policy.NewGraphDiffPolicy(conn, "policy-name", *graph)
+	policy := policy.NewGraphDiffPolicy(conn, "policy-name", graph)
 
 	// Create list of peers
 	peerList := make([]gdplogd.HashAddr, 0)

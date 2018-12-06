@@ -90,8 +90,15 @@ func (policy *GraphDiffPolicy) getLogDaemonConnection() gdplogd.LogDaemonConnect
 	return policy.conn
 }
 
-func (policy *GraphDiffPolicy) AcceptNewGraph(graph gdplogd.LogGraphWrapper) {
-	policy.currentGraph = graph
+// UpdateCurrGraph updates the currentGraph from the connection.
+// Traverses the entire database
+func (policy *GraphDiffPolicy) UpdateCurrGraph() error {
+	newGraph, err := policy.conn.GetGraph(policy.name)
+	if err != nil {
+		return err
+	}
+	policy.currentGraph = newGraph
+	return nil
 }
 
 func (policy *GraphDiffPolicy) initPeerIfNeeded(peer gdplogd.HashAddr) {
