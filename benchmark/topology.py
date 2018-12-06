@@ -24,7 +24,7 @@ if len(sys.argv) != 2:
 
 NUM_LOG_SERVER = int(sys.argv[1])
 PORT = 10262
-WRITE_INTERVAL = 1
+WRITE_INTERVAL = 0.2
 
 if __name__ == '__main__':
     setLogLevel('info')
@@ -45,7 +45,7 @@ if __name__ == '__main__':
                         str(i) + '.db',
                         '{0}:{1}'.format(server.IP(), PORT),
                         ",".join(peers_addr),
-                         2,
+                         1,
                         '2>', str(i) + '.log',
                         '&')
     writer.cmdPrint('python3 writer.py',

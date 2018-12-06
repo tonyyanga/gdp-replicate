@@ -10,7 +10,7 @@ if len(sys.argv) != 3:
 
 LOGDB_NUM = int(sys.argv[1])
 GLOG_DB = [str(i) + '.db' for i in range(LOGDB_NUM)]
-WRITE_INTERVAL = int(sys.argv[2])
+WRITE_INTERVAL = float(sys.argv[2])
 
 print("WRITER BEGINS")
 
