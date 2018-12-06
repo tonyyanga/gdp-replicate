@@ -45,7 +45,7 @@ if __name__ == '__main__':
                         str(i) + '.db',
                         '{0}:{1}'.format(server.IP(), PORT),
                         ",".join(peers_addr),
-                         1,
+                         2,
                         '2>', str(i) + '.log',
                         '&')
     writer.cmdPrint('python3 writer.py',
