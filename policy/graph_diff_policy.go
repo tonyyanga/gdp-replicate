@@ -3,7 +3,6 @@ package policy
 import (
 	"bufio"
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"log"
 	"sync"
@@ -370,11 +369,6 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 }
 
 func (policy *GraphDiffPolicy) processThirdMsg(msg *Message, src gdplogd.HashAddr) *Message {
-	zap.S().Debugw(
-		"processing third message",
-		"msg", msg,
-		"src", binary.BigEndian.Uint64(src[:]),
-	)
 	ctx := policy.getPeerPolicyContext(src)
 
 	reader := bufio.NewReader(msg.Body)
@@ -425,11 +419,6 @@ func (policy *GraphDiffPolicy) processThirdMsg(msg *Message, src gdplogd.HashAdd
 }
 
 func (policy *GraphDiffPolicy) processFourthMsg(msg *Message, src gdplogd.HashAddr) *Message {
-	zap.S().Debugw(
-		"processing fourth message",
-		"msg", msg,
-		"src", binary.BigEndian.Uint64(src[:]),
-	)
 	ctx := policy.getPeerPolicyContext(src)
 
 	reader := bufio.NewReader(msg.Body)
