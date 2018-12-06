@@ -18,7 +18,7 @@ func msgPrinter(src gdplogd.HashAddr, msg *policy.Message) {
 func InitLogger(addr gdplogd.HashAddr) {
 	zapLogger, err := zap.NewDevelopment()
 	zapLogger = zapLogger.With(
-		zap.Int("selfAddr", int(gdplogd.ReadableAddr(addr))),
+		zap.String("selfAddr", gdplogd.ReadableAddr(addr)),
 	)
 	if err != nil {
 		log.Fatal("failed to create logger:", err.Error())
