@@ -40,7 +40,7 @@ func NewDaemon(
 	policy := policy.NewGraphDiffPolicy(conn, "policy-name", *graph)
 
 	// Create list of peers
-	peerList := make([]gdplogd.HashAddr, len(peerAddrMap))
+	peerList := make([]gdplogd.HashAddr, 0)
 	for peer := range peerAddrMap {
 		peerList = append(peerList, peer)
 	}
@@ -58,7 +58,7 @@ func NewDaemon(
 
 // Start begins listening for and sending heartbeats.
 func (daemon Daemon) Start() error {
-	go daemon.scheduleHeartBeat(2)
+	go daemon.scheduleHeartBeat(4, daemon.fanOutHeartBeat(1))
 
 	handler := func(src gdplogd.HashAddr, msg *policy.Message) {
 		returnMsg := daemon.policy.ProcessMessage(msg, src)

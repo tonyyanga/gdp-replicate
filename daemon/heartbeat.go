@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"encoding/binary"
 	"math/rand"
 	"time"
 
@@ -9,14 +10,14 @@ import (
 )
 
 // Send a heart beat every INTERVAL seconds
-func (daemon Daemon) scheduleHeartBeat(interval int) error {
+func (daemon Daemon) scheduleHeartBeat(interval int, heartBeat heartBeatSender) error {
 	zap.S().Infow(
 		"scheduling heartbeat",
 		"interval", interval,
 	)
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for _ = range ticker.C {
-		err := daemon.cycleHeartBeat()
+		err := heartBeat()
 		if err != nil {
 			return err
 		}
@@ -32,20 +33,20 @@ func (daemon Daemon) sendHeartBeat(peer gdplogd.HashAddr) error {
 	if msg == nil {
 		zap.S().Infow(
 			"no heartbeat sent",
-			"src", daemon.myAddr,
-			"dst", peer,
+			"dst", binary.BigEndian.Uint64(peer[:]),
 		)
 		return nil
 	}
 
 	zap.S().Infow(
 		"heart beat sent",
-		"src", daemon.myAddr,
-		"dst", peer,
+		"dst", binary.BigEndian.Uint64(peer[:]),
 		"msg", msg,
 	)
 	return daemon.network.Send(daemon.myAddr, peer, msg)
 }
+
+type heartBeatSender func() error
 
 // Send a heartbeat message to one of daemon peers.
 // Cycles through each of the peers
@@ -62,4 +63,31 @@ func (daemon Daemon) randomHeartBeat() error {
 	peerIndex := rand.Intn(len(daemon.peerList))
 	peer := daemon.peerList[peerIndex]
 	return daemon.sendHeartBeat(peer)
+}
+
+// fanOutHeartBeat returns a function that sends heartbeats to fanoutDegree peers.
+func (daemon Daemon) fanOutHeartBeat(fanoutDegree int) heartBeatSender {
+	if fanoutDegree > len(daemon.peerList) {
+		zap.S().Fatalf(
+			"fanout degree too large for num peers",
+			"numPeers", len(daemon.peerList),
+			"fanoutDegree", fanoutDegree,
+		)
+	}
+	return func() error {
+		randomOrder := rand.Perm(len(daemon.peerList))
+		peerIndices := randomOrder[:fanoutDegree]
+		zap.S().Infow(
+			"sending fanout heart beat",
+			"chosen indices", peerIndices,
+		)
+		for _, peerIndex := range peerIndices {
+			err := daemon.sendHeartBeat(daemon.peerList[peerIndex])
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+
+	}
 }

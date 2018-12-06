@@ -10,6 +10,7 @@ import (
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
 	"github.com/tonyyanga/gdp-replicate/policy"
+	"go.uber.org/zap"
 )
 
 // Simple Replication Manager that directly connects to peers
@@ -65,6 +66,13 @@ func (mgr *SimpleReplicateMgr) ListenAndServe(address string, handler func(src g
 
 		var srcAddr gdplogd.HashAddr
 		copy(srcAddr[:], src_[:32])
+
+		zap.S().Infow(
+			"received message",
+			"msg", msg,
+			"srcAddr", gdplogd.ReadableAddr(srcAddr),
+		)
+
 		handler(srcAddr, msg)
 
 		io.WriteString(w, "Accepted")

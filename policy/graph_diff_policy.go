@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
+	"go.uber.org/zap"
 )
 
 // Message Types, four messages are required in chronological order
@@ -143,7 +144,7 @@ func (policy *GraphDiffPolicy) GenerateMessage(dest gdplogd.HashAddr) *Message {
 	buf.WriteString("ends\n")
 	addrListToReader(policy.currentGraph.GetLogicalEnds(), &buf)
 
-	log.Printf("Generate msg %v", first)
+	zap.S().Infof("Generate msg %v", first)
 
 	return &Message{
 		Type: first,
@@ -152,6 +153,11 @@ func (policy *GraphDiffPolicy) GenerateMessage(dest gdplogd.HashAddr) *Message {
 }
 
 func (policy *GraphDiffPolicy) ProcessMessage(msg *Message, src gdplogd.HashAddr) *Message {
+	zap.S().Debugw(
+		"processing message",
+		"msg", msg,
+		"src", gdplogd.ReadableAddr(src),
+	)
 	policy.initPeerIfNeeded(src)
 
 	policy.peerMutex[src].Lock()
@@ -252,7 +258,7 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAdd
 	addrListToReader(graph.GetLogicalEnds(), &buf)
 
 	policy.peerLastMsgType[src] = firstMsgRecved
-	log.Printf("Generate msg %v", second)
+	zap.S().Infof("Generate msg %v", second)
 
 	return &Message{
 		Type: second,
@@ -355,7 +361,7 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 
 	policy.peerLastMsgType[src] = thirdMsgSent
 
-	log.Printf("Generate msg %v", third)
+	zap.S().Infof("Generate msg %v", third)
 	return &Message{
 		Type: third,
 		Body: &buf,
@@ -407,7 +413,7 @@ func (policy *GraphDiffPolicy) processThirdMsg(msg *Message, src gdplogd.HashAdd
 	ctx.processDataSection(reader)
 
 	policy.peerLastMsgType[src] = thirdMsgRecved
-	log.Printf("Generate msg %v", fourth)
+	zap.S().Infof("Generate msg %v", fourth)
 
 	return ret
 }
