@@ -14,7 +14,7 @@ func (daemon Daemon) scheduleHeartBeat(interval int, heartBeat heartBeatSender) 
 		"scheduling heartbeat",
 		"interval", interval,
 	)
-	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
 	for _ = range ticker.C {
 		err := heartBeat()
 		if err != nil {

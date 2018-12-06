@@ -60,7 +60,7 @@ func NewDaemon(
 // Start begins listening for and sending heartbeats.
 func (daemon Daemon) Start(fanoutDegree int) error {
 	zap.S().Info("starting daemon")
-	go daemon.scheduleHeartBeat(1, daemon.fanOutHeartBeat(fanoutDegree))
+	go daemon.scheduleHeartBeat(100, daemon.fanOutHeartBeat(fanoutDegree))
 
 	handler := func(src gdplogd.HashAddr, msg *policy.Message) {
 		returnMsg := daemon.policy.ProcessMessage(msg, src)
