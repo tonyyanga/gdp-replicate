@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+
+	"go.uber.org/zap"
 )
 
 // LogDaemonConnection represents a connection to a log daemon.
@@ -162,6 +164,10 @@ func (conn LogDaemonConnector) WriteLogItem(name string, logEntry *LogEntryMetad
 		return err
 	}
 
+	zap.S().Infow(
+		"wrote log item to database",
+		"hash", ReadableAddr(logEntry.Hash),
+	)
 	return nil
 }
 

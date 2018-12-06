@@ -33,7 +33,6 @@ func (daemon Daemon) sendHeartBeat(peer gdplogd.HashAddr) error {
 	if msg == nil {
 		zap.S().Infow(
 			"no heartbeat sent",
-			"src", binary.BigEndian.Uint64(daemon.myAddr[:]),
 			"dst", binary.BigEndian.Uint64(peer[:]),
 		)
 		return nil
@@ -41,7 +40,6 @@ func (daemon Daemon) sendHeartBeat(peer gdplogd.HashAddr) error {
 
 	zap.S().Infow(
 		"heart beat sent",
-		"src", binary.BigEndian.Uint64(daemon.myAddr[:]),
 		"dst", binary.BigEndian.Uint64(peer[:]),
 		"msg", msg,
 	)
@@ -69,12 +67,19 @@ func (daemon Daemon) randomHeartBeat() error {
 
 // fanOutHeartBeat returns a function that sends heartbeats to fanoutDegree peers.
 func (daemon Daemon) fanOutHeartBeat(fanoutDegree int) heartBeatSender {
+	if fanoutDegree > len(daemon.peerList) {
+		zap.S().Fatalf(
+			"fanout degree too large for num peers",
+			"numPeers", len(daemon.peerList),
+			"fanoutDegree", fanoutDegree,
+		)
+	}
 	return func() error {
 		randomOrder := rand.Perm(len(daemon.peerList))
 		peerIndices := randomOrder[:fanoutDegree]
 		zap.S().Infow(
 			"sending fanout heart beat",
-			"peerIndices", peerIndices,
+			"chosen indices", peerIndices,
 		)
 		for _, peerIndex := range peerIndices {
 			err := daemon.sendHeartBeat(daemon.peerList[peerIndex])

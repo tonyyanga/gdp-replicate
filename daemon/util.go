@@ -15,11 +15,13 @@ func msgPrinter(src gdplogd.HashAddr, msg *policy.Message) {
 }
 
 // InitLogger initializes the Zap logger
-func InitLogger() {
-	zapLogger, err := zap.NewProduction()
+func InitLogger(addr gdplogd.HashAddr) {
+	zapLogger, err := zap.NewDevelopment()
+	zapLogger = zapLogger.With(
+		zap.Int("selfAddr", int(gdplogd.ReadableAddr(addr))),
+	)
 	if err != nil {
 		log.Fatal("failed to create logger:", err.Error())
 	}
 	zap.ReplaceGlobals(zapLogger)
-
 }

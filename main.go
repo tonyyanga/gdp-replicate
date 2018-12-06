@@ -12,18 +12,20 @@ func main() {
 		panic("Requires arguments: listen address, peer address, SQL file")
 	}
 
-	listenAddr := os.Args[1]
-	peerAddr := os.Args[2]
+	listenPort := os.Args[1]
+	selfAddr := gdplogd.PortToHashAddr(listenPort)
+
+	peerPort := os.Args[2]
+	peerAddr := gdplogd.PortToHashAddr(peerPort)
 
 	sqlFile := os.Args[3]
 
-	var peer gdplogd.HashAddr
-
 	peerMap := make(map[gdplogd.HashAddr]string)
-	peerMap[peer] = peerAddr
+	peerMap[peerAddr] = peerPort
 
-	daemon.InitLogger()
-	d, err := daemon.NewDaemon(listenAddr, sqlFile, peer /* same address in a pair */, peerMap)
+	daemon.InitLogger(selfAddr)
+
+	d, err := daemon.NewDaemon(listenPort, sqlFile, selfAddr, peerMap)
 	if err != nil {
 		panic(err)
 	}
