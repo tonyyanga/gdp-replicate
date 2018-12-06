@@ -5,6 +5,7 @@ from mininet.link import TCLink
 from mininet.log import setLogLevel
 import time
 import sys
+import os
 from gdb_log_utils import *
 
 class GDPSimulationTopo(Topo):
@@ -23,6 +24,7 @@ if len(sys.argv) != 2:
 
 NUM_LOG_SERVER = int(sys.argv[1])
 PORT = 10262
+WRITE_INTERVAL = 1
 
 if __name__ == '__main__':
     setLogLevel('info')
@@ -30,6 +32,7 @@ if __name__ == '__main__':
     net = Mininet(topo=topo)
     net.start()
     # net.pingAll()
+    os.system('rm -f *.db')
     for i in range(NUM_LOG_SERVER):
         create_fresh_logdb(str(i) + ".db")
     log_servers = net.hosts[:NUM_LOG_SERVER]
@@ -42,8 +45,12 @@ if __name__ == '__main__':
                         str(i) + '.db',
                         '{0}:{1}'.format(server.IP(), PORT),
                         ",".join(peers_addr),
+                         1,
                         '2>', str(i) + '.log',
                         '&')
-    writer.cmdPrint('python3 writer.py', NUM_LOG_SERVER)
+    writer.cmdPrint('python3 writer.py',
+                     NUM_LOG_SERVER, WRITE_INTERVAL,
+                     #'> writer.log',
+                    '&')
     time.sleep(1000)
     net.stop()

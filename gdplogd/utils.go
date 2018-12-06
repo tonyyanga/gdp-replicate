@@ -5,6 +5,6 @@ import (
 )
 
 func ReadableAddr(addr HashAddr) string {
-	return fmt.Sprintf("%X", addr)[:4]
+	return fmt.Sprintf("%X", addr)
 	//return binary.BigEndian.Uint64(addr[:])
 }

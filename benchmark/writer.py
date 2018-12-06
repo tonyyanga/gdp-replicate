@@ -4,14 +4,13 @@ import datetime
 from gdb_log_utils import *
 import sys
 
-if len(sys.argv) != 2:
-    print("NUMBER_LOG_SERVER")
+if len(sys.argv) != 3:
+    print("NUMBER_LOG_SERVER, WRITE_INTERVAL")
     sys.exit(2)
 
 LOGDB_NUM = int(sys.argv[1])
 GLOG_DB = [str(i) + '.db' for i in range(LOGDB_NUM)]
-GOSSIP_INTERVAL = 4
-WRITE_INTERVAL = 1 * GOSSIP_INTERVAL
+WRITE_INTERVAL = int(sys.argv[2])
 
 print("WRITER BEGINS")
 
@@ -20,6 +19,7 @@ if __name__ == '__main__':
     connections = [create_connection(file) for file in GLOG_DB]
     servers = list(range(LOGDB_NUM))
     cnt = 0
+    log_file = open("writer.log", "w")
     while True:
         curr_hash = get_hash(str(random.getrandbits(256)))
         curr_data = get_hash(str(random.getrandbits(1024)))
@@ -34,9 +34,12 @@ if __name__ == '__main__':
             written_hash.append(curr_hash)
             c.execute('INSERT INTO log_entry VALUES (?, ?, ?, ?, ?, ?, ?)', record)
             conn.commit()
-            print("{0}, {1} write to {2}, hash: {3}".format(datetime.datetime.now(), cnt,
-                                                           chosen,
-                                                           curr_hash.hex()[:4].upper()))
+            log = dict(timestamp=str(datetime.datetime.now()),
+                       write_cnt=cnt,
+                       server_chosen=chosen,
+                       record_hash=curr_hash.hex().upper())
+            log_file.write(str(log) + "\n")
+            log_file.flush()
         cnt += 1
         time.sleep(WRITE_INTERVAL)
 
