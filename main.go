@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/sha256"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/tonyyanga/gdp-replicate/daemon"
@@ -12,7 +13,7 @@ import (
 
 func main() {
 	if len(os.Args) < 4 {
-		panic("Requires arguments: SQL file, listen address, peer address, ")
+		panic("Requires arguments: SQL file, listen address, peer address, fanout degree")
 	}
 
 	sqlFile := os.Args[1]
@@ -23,12 +24,17 @@ func main() {
 	daemon.InitLogger(selfGDPAddr)
 	peerMap := parsePeers(os.Args[3])
 
+	fanoutDegree, err := strconv.Atoi(os.Args[4])
+	if err != nil {
+		panic("unable to parse fanout degree")
+	}
+
 	d, err := daemon.NewDaemon(listenAddr, sqlFile, selfGDPAddr, peerMap)
 	if err != nil {
 		panic(err)
 	}
 
-	err = d.Start()
+	err = d.Start(fanoutDegree)
 	if err != nil {
 		panic(err)
 	}
