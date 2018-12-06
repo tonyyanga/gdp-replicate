@@ -6,6 +6,7 @@ import (
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
 	"github.com/tonyyanga/gdp-replicate/peers"
 	"github.com/tonyyanga/gdp-replicate/policy"
+	"go.uber.org/zap"
 )
 
 type Daemon struct {
@@ -58,6 +59,7 @@ func NewDaemon(
 
 // Start begins listening for and sending heartbeats.
 func (daemon Daemon) Start() error {
+	zap.S().Info("starting daemon")
 	go daemon.scheduleHeartBeat(4, daemon.fanOutHeartBeat(1))
 
 	handler := func(src gdplogd.HashAddr, msg *policy.Message) {
