@@ -167,6 +167,7 @@ func (conn LogDaemonConnector) WriteLogItem(name string, logEntry *LogEntryMetad
 	zap.S().Infow(
 		"wrote log item to database",
 		"hash", ReadableAddr(logEntry.Hash),
+		"prevHash", ReadableAddr(logEntry.PrevHash),
 	)
 	return nil
 }

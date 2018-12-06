@@ -184,7 +184,6 @@ func (ctx *peerPolicyContext) tryStoreData(metadata gdplogd.LogEntryMetadata, da
 	if contains {
 		return false
 	} else {
-		// TODO: proper error handling
 		err = conn.WriteLogItem(name, &metadata, bytes.NewBuffer(data))
 		if err != nil {
 			zap.S().Infow(
@@ -192,13 +191,8 @@ func (ctx *peerPolicyContext) tryStoreData(metadata gdplogd.LogEntryMetadata, da
 				"metadata", metadata,
 				"data", data,
 			)
+			// TODO: proper error handling
 		}
-
-		zap.S().Infow(
-			"wrote log item",
-			"metadata", metadata,
-			"data", data,
-		)
 		return true
 	}
 
