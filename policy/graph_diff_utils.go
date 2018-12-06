@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
+	"go.uber.org/zap"
 )
 
 // Get peer policy context
@@ -184,7 +185,20 @@ func (ctx *peerPolicyContext) tryStoreData(metadata gdplogd.LogEntryMetadata, da
 		return false
 	} else {
 		// TODO: proper error handling
-		conn.WriteLogItem(name, &metadata, bytes.NewBuffer(data))
+		err = conn.WriteLogItem(name, &metadata, bytes.NewBuffer(data))
+		if err != nil {
+			zap.S().Infow(
+				"failed to write log item",
+				"metadata", metadata,
+				"data", data,
+			)
+		}
+
+		zap.S().Infow(
+			"wrote log item",
+			"metadata", metadata,
+			"data", data,
+		)
 		return true
 	}
 
