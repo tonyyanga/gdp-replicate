@@ -13,7 +13,7 @@ import (
 
 func main() {
 	if len(os.Args) < 4 {
-		panic("Requires arguments: SQL file, listen address, peer address, fanout degree")
+		panic("Requires arguments: SQL file, listen address, peer address, fanout degree [optional:naive]")
 	}
 
 	sqlFile := os.Args[1]
@@ -29,7 +29,13 @@ func main() {
 		panic("unable to parse fanout degree")
 	}
 
-	d, err := daemon.NewDaemon(listenAddr, sqlFile, selfGDPAddr, peerMap)
+	var d daemon.Daemon
+	if len(os.Args) >= 6 && os.Args[5] == "naive" {
+		d, err = daemon.NewNaiveDaemon(listenAddr, sqlFile, selfGDPAddr, peerMap)
+	} else {
+		d, err = daemon.NewDaemon(listenAddr, sqlFile, selfGDPAddr, peerMap)
+	}
+
 	if err != nil {
 		panic(err)
 	}
