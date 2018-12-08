@@ -3,8 +3,10 @@ package policy
 import (
 	"bytes"
 	"database/sql"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
 	"go.uber.org/zap"
@@ -36,7 +38,7 @@ func GetAllLogHashes(db *sql.DB) ([]gdplogd.HashAddr, error) {
 	return allHashes, nil
 }
 
-func WriteLogEntry(db *sql.DB, logEntries []LogEntry) error {
+func WriteLogEntries(db *sql.DB, logEntries []LogEntry) error {
 	insert_statement := `insert into log_entry(
 		hash, recno, timestamp, accuracy, prevhash, value, sig) 
 		values(?, ?, ?, ?, ?, ?, ?);`
@@ -124,6 +126,8 @@ func GetLogEntry(db *sql.DB, hash gdplogd.HashAddr) (*LogEntry, error) {
 	return &logEntry, nil
 }
 
+// findDifferences determines which hashes are exclusive to only one list.
+// e.g. finding the non-union parts of a Venn diagram
 func findDifferences(myHashes, theirHashes []gdplogd.HashAddr) (onlyMine []gdplogd.HashAddr, onlyTheirs []gdplogd.HashAddr) {
 	mySet := initSet(myHashes)
 	theirSet := initSet(theirHashes)
@@ -144,6 +148,7 @@ func findDifferences(myHashes, theirHashes []gdplogd.HashAddr) (onlyMine []gdplo
 	return onlyMine, onlyTheirs
 }
 
+// initSet converts a HashAddr slice to a set
 func initSet(hashes []gdplogd.HashAddr) map[gdplogd.HashAddr]bool {
 	set := make(map[gdplogd.HashAddr]bool)
 	for _, hash := range hashes {
@@ -152,23 +157,61 @@ func initSet(hashes []gdplogd.HashAddr) map[gdplogd.HashAddr]bool {
 	return set
 }
 
-func createSecondMessageReader(logEntries []LogEntry, hashes []gdplogd.HashAddr) *bytes.Buffer {
-	var buf bytes.Buffer
+type FirstMsgContent struct {
+	Hashes []gdplogd.HashAddr
+}
 
-	enc := gob.NewEncoder(&buf)
-	if err := enc.Encode(logEntries); err != nil {
-		zap.S().Errorw(
-			"Error encoding log entries",
-			"error", err.Error(),
-		)
+func encodeFirstMsg(hashes []gdplogd.HashAddr) (io.Reader, error) {
+	firstMessageBytes, err := json.Marshal(FirstMsgContent{
+		Hashes: hashes,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(firstMessageBytes), nil
+}
+
+func decodeFirstMsg(msg *Message) ([]gdplogd.HashAddr, error) {
+	if msg.Type != first {
+		return nil, fmt.Errorf("expected first message but received %d message", msg.Type)
 	}
 
-	if err := enc.Encode(hashes); err != nil {
-		zap.S().Errorw(
-			"Error encoding log entries",
-			"error", err.Error(),
-		)
+	bytesRead, err := ioutil.ReadAll(msg.Body)
+	if err != nil {
+		return nil, err
 	}
 
-	return &buf
+	var firstMsgContent FirstMsgContent
+	err = json.Unmarshal(bytesRead, &firstMsgContent)
+	if err != nil {
+		return nil, err
+	}
+
+	return firstMsgContent.Hashes, nil
+}
+
+type SecondMsgContent struct {
+	LogEntries []LogEntry
+	Hashes     []gdplogd.HashAddr
+}
+
+func decodeSecondMsg(msg *Message) ([]LogEntry, []gdplogd.HashAddr, error) {
+	if msg.Type != second {
+		return nil, nil, fmt.Errorf("expected second message but received %d message", msg.Type)
+	}
+
+	bytesRead, err := ioutil.ReadAll(msg.Body)
+	if err != nil {
+		return nil, nil, err
+	}
+	secondMsgContent := SecondMsgContent{}
+	err = json.Unmarshal(bytesRead, &secondMsgContent)
+	if err != nil {
+		return nil, nil, err
+	}
+	return secondMsgContent.LogEntries, secondMsgContent.Hashes, nil
+}
+
+type ThirdMsgContent struct {
+	LogEntries []LogEntry
 }

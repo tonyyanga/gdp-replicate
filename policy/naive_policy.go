@@ -1,11 +1,10 @@
 package policy
 
 import (
-	"bufio"
 	"bytes"
 	"database/sql"
-	"encoding/gob"
-	"fmt"
+	"encoding/json"
+	"io/ioutil"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
 	"go.uber.org/zap"
@@ -37,7 +36,6 @@ func (policy *NaivePolicy) UpdateCurrGraph() error {
 
 func (policy *NaivePolicy) GenerateMessage(dest gdplogd.HashAddr) *Message {
 	policy.initPeerIfNeeded(dest)
-	var buf bytes.Buffer
 
 	// Write every hash into message
 	hashes, err := GetAllLogHashes(policy.db)
@@ -46,17 +44,26 @@ func (policy *NaivePolicy) GenerateMessage(dest gdplogd.HashAddr) *Message {
 			"Failed to read all log hashes from db",
 			"error", err.Error(),
 		)
+		return nil
 	}
-	addrListToReader(hashes, &buf)
 
-	// change my state to initHeartBeat
+	firstMsgReader, err := encodeFirstMsg(hashes)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to encode log hashes",
+			"error", err.Error(),
+		)
+		return nil
+	}
+
+	// change my state to initHeartBeat right before send
 	policy.myState[dest] = initHeartBeat
-
 	return &Message{
 		Type: first,
-		Body: &buf,
+		Body: firstMsgReader,
 	}
 }
+
 func (policy *NaivePolicy) ProcessMessage(
 	msg *Message,
 	src gdplogd.HashAddr,
@@ -83,14 +90,16 @@ func (policy *NaivePolicy) ProcessMessage(
 }
 
 func (policy *NaivePolicy) processFirstMsg(msg *Message, src gdplogd.HashAddr) *Message {
-	// read all hashes
-	reader := bufio.NewReader(msg.Body)
-	theirHashes, err := addrListFromReader(reader)
+	zap.S().Debug("processing first msg")
+	// read all their hashes
+	theirHashes, err := decodeFirstMsg(msg)
 	if err != nil {
 		zap.S().Errorw(
-			"Error parsing msg",
+			"Error decoding first msg",
 			"error", err.Error(),
 		)
+		policy.myState[src] = resting
+		return nil
 	}
 
 	// compute my hashes
@@ -100,47 +109,122 @@ func (policy *NaivePolicy) processFirstMsg(msg *Message, src gdplogd.HashAddr) *
 			"Failed to read all log hashes from db",
 			"error", err.Error(),
 		)
+		policy.myState[src] = resting
+		return nil
 	}
-	fmt.Printf("%s %s", theirHashes, myHashes)
 
 	// find the differences
 	onlyMine, onlyTheirs := findDifferences(myHashes, theirHashes)
 
-	// load the logs with hashes that only I had
-	onlyMyLogs, err := GetLogEntries(policy.db, myHashes)
-
-	var buf bytes.Buffer
-	msgToSend := &Message{
-		Type: second,
-		Body: &buf,
-	}
-
-	enc := gob.NewEncoder(&buf)
-	if err := enc.Encode(onlyMyLogs); err != nil {
-		zap.S().Errorw(
-			"Error encoding log entries",
-			"error", err.Error(),
-		)
-	}
+	// load the logs with hashes that only I have
+	onlyMyLogs, err := GetLogEntries(policy.db, onlyMine)
 
 	// send data, requests
+	secondMessageBytes, err := json.Marshal(SecondMsgContent{
+		LogEntries: onlyMyLogs,
+		Hashes:     onlyTheirs,
+	})
 
-	return msgToSend
+	policy.myState[src] = receiveHeartBeat
+	return &Message{
+		Type: second,
+		Body: bytes.NewReader(secondMessageBytes),
+	}
+
 }
 
 func (policy *NaivePolicy) processSecondMsg(msg *Message, src gdplogd.HashAddr) *Message {
-	// identify requests
+	zap.S().Debug("processing second msg")
+	//parse Message
+	secondMsgLogEntries, secondMsgHashes, err := decodeSecondMsg(msg)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to read bytes from second message",
+			"error", err.Error(),
+		)
+		policy.myState[src] = resting
+		return nil
+	}
 
 	// load requests
+	requestedLogEntries, err := GetLogEntries(policy.db, secondMsgHashes)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to fetch requested logs",
+			"error", err.Error(),
+		)
+		policy.myState[src] = resting
+		return nil
+	}
 
 	// save received data
+	err = WriteLogEntries(policy.db, secondMsgLogEntries)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to save given logs",
+			"error", err.Error(),
+		)
+		policy.myState[src] = resting
+		return nil
+	}
+	zap.S().Debugw("wrote log entries to db",
+		"numLogs", len(secondMsgLogEntries),
+	)
+
+	zap.S().Debugw("requesting log entries",
+		"numLogs", len(requestedLogEntries),
+	)
 
 	// send data for requests
-	return nil
+	thirdMsgBytes, err := json.Marshal(ThirdMsgContent{
+		LogEntries: requestedLogEntries,
+	})
+	policy.myState[src] = resting
+	return &Message{
+		Type: third,
+		Body: bytes.NewReader(thirdMsgBytes),
+	}
 }
 
 func (policy *NaivePolicy) processThirdMsg(msg *Message, src gdplogd.HashAddr) *Message {
+	zap.S().Debug("processing third msg")
+
 	// save receivved data
+	bytesRead, err := ioutil.ReadAll(msg.Body)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to read bytes from third message",
+			"error", err.Error(),
+		)
+		policy.myState[src] = resting
+		return nil
+	}
+	thirdMsgContent := ThirdMsgContent{}
+	err = json.Unmarshal(bytesRead, &thirdMsgContent)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to decode bytes from third message",
+			"error", err.Error(),
+		)
+		policy.myState[src] = resting
+		return nil
+	}
+
+	err = WriteLogEntries(policy.db, thirdMsgContent.LogEntries)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to write provided logs to db",
+			"error", err.Error(),
+		)
+		policy.myState[src] = resting
+		return nil
+	}
+	zap.S().Debugw(
+		"wrote log entries to db",
+		"numLogs", len(thirdMsgContent.LogEntries),
+	)
+
+	policy.myState[src] = resting
 	return nil
 }
 
