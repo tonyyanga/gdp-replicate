@@ -10,12 +10,6 @@ type HashAddr [32]byte
 // Multimap for HashAddr
 type HashAddrMultiMap map[HashAddr][]HashAddr
 
-type LogMetadata struct {
-	// TODO: I am not sure what are needed
-	PrevPointer HashAddr
-	Timestamp   uint32
-}
-
 type LogEntryMetadata struct {
 	Hash HashAddr
 

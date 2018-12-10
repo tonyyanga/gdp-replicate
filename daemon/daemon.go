@@ -28,6 +28,9 @@ func NewDaemon(
 	peerAddrMap map[gdplogd.HashAddr]string,
 ) (Daemon, error) {
 	db, err := sql.Open("sqlite3", sqlFile)
+	if err != nil {
+		return Daemon{}, err
+	}
 
 	conn, err := gdplogd.InitLogDaemonConnector(db, "default")
 	if err != nil {
@@ -52,6 +55,36 @@ func NewDaemon(
 		network:        peers.NewSimpleReplicateMgr(peerAddrMap),
 		policy:         policy,
 		conn:           conn,
+		heartBeatState: 0,
+		peerList:       peerList,
+	}, nil
+}
+
+// NewNaiveDaemon initializes Daemon for a log with the naive algorithm
+func NewNaiveDaemon(
+	httpAddr,
+	sqlFile string,
+	myHashAddr gdplogd.HashAddr,
+	peerAddrMap map[gdplogd.HashAddr]string,
+) (Daemon, error) {
+	db, err := sql.Open("sqlite3", sqlFile)
+	if err != nil {
+		return Daemon{}, err
+	}
+
+	policy := policy.NewNaivePolicy(db, "policy-name")
+
+	// Create list of peers
+	peerList := make([]gdplogd.HashAddr, 0)
+	for peer := range peerAddrMap {
+		peerList = append(peerList, peer)
+	}
+
+	return Daemon{
+		httpAddr:       httpAddr,
+		myAddr:         myHashAddr,
+		network:        peers.NewSimpleReplicateMgr(peerAddrMap),
+		policy:         policy,
 		heartBeatState: 0,
 		peerList:       peerList,
 	}, nil
