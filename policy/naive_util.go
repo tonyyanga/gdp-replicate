@@ -39,6 +39,7 @@ func GetAllLogHashes(db *sql.DB) ([]gdplogd.HashAddr, error) {
 }
 
 func WriteLogEntries(db *sql.DB, logEntries []LogEntry) error {
+	zap.S().Infow("Attempting to batch write log entries")
 	insert_statement := `insert into log_entry(
 		hash, recno, timestamp, accuracy, prevhash, value, sig) 
 		values(?, ?, ?, ?, ?, ?, ?);`

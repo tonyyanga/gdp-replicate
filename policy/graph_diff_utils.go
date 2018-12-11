@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"log"
 	"strconv"
 
 	"github.com/tonyyanga/gdp-replicate/gdplogd"
@@ -102,31 +101,44 @@ func (ctx *peerPolicyContext) processDataSection(body io.Reader) {
 
 	length_, err := reader.ReadBytes('\n')
 	if err != nil {
-		log.Printf("Error while reading: %v", err)
+		zap.S().Errorw(
+			"failed to read data from reader",
+			"error", err.Error(),
+		)
 		return
 	}
 	length_ = length_[:len(length_)-1]
 
 	length, err := strconv.Atoi(string(length_))
 	if err != nil {
-		log.Printf("%v", err)
+		zap.S().Errorw(
+			"failed to convert string to integer",
+			"error", err.Error(),
+		)
 		return
 	}
 
 	updates := make([]gdplogd.LogEntryMetadata, 0)
+	var logEntriesToWrite []LogEntry
 
 	for ; length > 0; length-- {
 		// Read an individual block
 		dataLength_, err := reader.ReadBytes('\n')
 		if err != nil {
-			log.Printf("%v", err)
+			zap.S().Errorw(
+				"failed to read data length",
+				"error", err.Error(),
+			)
 			return
 		}
 		dataLength_ = dataLength_[:len(dataLength_)-1]
 
 		dataLength, err := strconv.Atoi(string(dataLength_))
 		if err != nil {
-			log.Printf("%v", err)
+			zap.S().Errorw(
+				"failed to convert data length string to int",
+				"error", err.Error(),
+			)
 			return
 		}
 
@@ -134,20 +146,29 @@ func (ctx *peerPolicyContext) processDataSection(body io.Reader) {
 		var prev gdplogd.HashAddr
 		_, err = io.ReadFull(reader, addr[:])
 		if err != nil {
-			log.Printf("%v", err)
+			zap.S().Errorw(
+				"failed to read record hash bytes",
+				"error", err.Error(),
+			)
 			return
 		}
 
 		_, err = io.ReadFull(reader, prev[:])
 		if err != nil {
-			log.Printf("%v", err)
+			zap.S().Errorw(
+				"failed to read record prevHash bytes",
+				"error", err.Error(),
+			)
 			return
 		}
 
 		data := make([]byte, dataLength)
 		_, err = io.ReadFull(reader, data)
 		if err != nil {
-			log.Printf("%v", err)
+			zap.S().Errorw(
+				"failed to read record data",
+				"error", err.Error(),
+			)
 			return
 		}
 
@@ -156,13 +177,33 @@ func (ctx *peerPolicyContext) processDataSection(body io.Reader) {
 			PrevHash: prev,
 			// TODO
 		}
-
-		ctx.tryStoreData(metadata, data)
+		logEntry := LogEntry{
+			Hash:     addr,
+			PrevHash: prev,
+			Value:    data,
+		}
+		logEntriesToWrite = append(logEntriesToWrite, logEntry)
 
 		updates = append(updates, metadata)
 	}
 
+	if len(logEntriesToWrite) > 0 {
+		err = ctx.tryStoreLogEntries(logEntriesToWrite)
+		if err != nil {
+			zap.S().Errorw(
+				"failed to store log entries. transaction likely aborted",
+				"error", err.Error(),
+			)
+		}
+	}
+
 	ctx.graph.AcceptNewLogEntries(updates)
+}
+
+func (ctx *peerPolicyContext) tryStoreLogEntries(logEntries []LogEntry) error {
+	conn := ctx.policy.conn
+	db := conn.GetConnection()
+	return WriteLogEntries(db, logEntries)
 }
 
 // Try to store the data at addr

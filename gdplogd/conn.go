@@ -14,6 +14,7 @@ import (
 type LogDaemonConnection interface {
 	GetGraphs() (map[string]LogGraphWrapper, error)
 
+	GetConnection() *sql.DB
 	GetGraph(name string) (LogGraphWrapper, error)
 
 	ReadLogMetadata(name string, addr HashAddr) (*LogEntryMetadata, error)
@@ -42,6 +43,10 @@ func InitLogDaemonConnector(db *sql.DB, name string) (LogDaemonConnector, error)
 	}
 	conn.graphs[name] = &logGraph
 	return conn, nil
+}
+
+func (conn LogDaemonConnector) GetConnection() *sql.DB {
+	return conn.db
 }
 
 // GetGraphs returns all graphs of the LogDaemonConnector
