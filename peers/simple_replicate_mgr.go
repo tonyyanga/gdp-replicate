@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 	"strconv"
 	"sync"
 
@@ -98,6 +99,20 @@ func (mgr *SimpleReplicateMgr) Send(src, peer gdplogd.HashAddr, msg *policy.Mess
 	}
 	req.Header.Add("MessageType", fmt.Sprint(msg.Type))
 	req.Header.Add("Source", hex.EncodeToString(src[:]))
+
+	requestDump, err := httputil.DumpRequestOut(req, true)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to dump request for tracking",
+			"error", err.Error(),
+		)
+	}
+	zap.S().Infow(
+		"sent message ASDF",
+		"src", gdplogd.ReadableAddr(src),
+		"dst", gdplogd.ReadableAddr(peer),
+		"length", len(requestDump),
+	)
 
 	resp, err := c.Do(req)
 
