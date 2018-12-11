@@ -167,9 +167,6 @@ func (policy *NaivePolicy) processSecondMsg(msg *Message, src gdplogd.HashAddr) 
 		policy.myState[src] = resting
 		return nil
 	}
-	zap.S().Debugw("wrote log entries to db",
-		"numLogs", len(secondMsgLogEntries),
-	)
 
 	zap.S().Debugw("requesting log entries",
 		"numLogs", len(requestedLogEntries),
@@ -219,10 +216,6 @@ func (policy *NaivePolicy) processThirdMsg(msg *Message, src gdplogd.HashAddr) *
 		policy.myState[src] = resting
 		return nil
 	}
-	zap.S().Debugw(
-		"wrote log entries to db",
-		"numLogs", len(thirdMsgContent.LogEntries),
-	)
 
 	policy.myState[src] = resting
 	return nil

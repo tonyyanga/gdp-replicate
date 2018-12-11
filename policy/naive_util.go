@@ -64,6 +64,9 @@ func WriteLogEntries(db *sql.DB, logEntries []LogEntry) error {
 		if err != nil {
 			return err
 		}
+		zap.S().Debugw("wrote log entry to db",
+			"hash", gdplogd.ReadableAddr(storedLogEntry.Hash),
+		)
 	}
 
 	err = tx.Commit()
