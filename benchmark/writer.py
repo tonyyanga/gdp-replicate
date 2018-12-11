@@ -15,8 +15,8 @@ GLOG_DB = [PATH + "/%s.db" % i for i in range(LOGDB_NUM)]
 WRITE_INTERVAL = float(sys.argv[2])
 MIN_DATA_SIZE = 1024
 MAX_DATA_SIZE = 1025
-CHURN_TIME = [200, 400]
-END_TIME = 600
+CHURN_TIME = [250]
+END_TIME = 500
 
 
 print("WRITER BEGINS")
