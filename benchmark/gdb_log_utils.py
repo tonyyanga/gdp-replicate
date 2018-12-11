@@ -11,6 +11,17 @@ def create_connection(db_file):
 
     return None
 
+def wipe_all_records(name):
+    conn = create_connection(name)
+    sql_wipe_table = "DELETE FROM log_entry;"
+    try:
+        c = conn.cursor()
+        c.execute(sql_wipe_table)
+        conn.commit()
+        conn.close()
+    except sqlite3.Error as e:
+        print(e)
+
 def create_fresh_logdb(name):
     conn = create_connection(name)
     sql_create_table = """ CREATE TABLE IF NOT EXISTS log_entry (
@@ -28,6 +39,7 @@ def create_fresh_logdb(name):
     except sqlite3.Error as e:
         print(e)
     return conn
+
 
 
 def write_graph_to_db(graph, db_name):
