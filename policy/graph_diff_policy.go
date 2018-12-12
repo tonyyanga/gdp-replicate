@@ -318,6 +318,7 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 	nodeMap := graph.GetNodeMap()
 
 	nodesToSend := make([]gdplogd.HashAddr, 0)
+	componentsToSend := make([]gdplogd.HashAddr, 0)
 	requests := make([]gdplogd.HashAddr, 0)
 
 	myBeginsEndsToSend := make(map[gdplogd.HashAddr]int)
@@ -357,18 +358,19 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 	for _, begin := range myBeginsNotMatched {
 		if _, found := myBeginsEndsToSend[begin]; !found {
 			// Add the connected component to nodesToSend
-			nodesToSend = append(nodesToSend, begin)
+			componentsToSend = append(componentsToSend, begin)
 		}
 	}
 
 	for _, end := range myEndsNotMatched {
 		if _, found := myBeginsEndsToSend[end]; !found {
 			// Add the connected component to nodesToSend
-			nodesToSend = append(nodesToSend, end)
+			componentsToSend = append(componentsToSend, end)
 		}
 	}
 
-	nodesToSend = ctx.getConnectedAddrs(nodesToSend)
+	componentsToSend = ctx.getConnectedAddrs(componentsToSend)
+	nodesToSend = append(nodesToSend, componentsToSend...)
 
 	var buf bytes.Buffer
 	buf.WriteString("requests\n")
