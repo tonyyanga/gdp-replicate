@@ -13,7 +13,7 @@ class GDPSimulationTopo(Topo):
         switch = self.addSwitch('s1')
         for i in range(n):
             host = self.addHost('h' + str(i + 1), cpu=.5 / n)
-            self.addLink(host, switch, cls=TCLink, bw=100, delay='5ms', loss=loss_rate)
+            self.addLink(host, switch, cls=TCLink, bw=10, delay='20ms', loss=loss_rate)
 
 
 # topos = {'simple': (lambda: GDPSimulationTopo(3, None)), 'lossy': (lambda: GDPSimulationTopo(3, 0.01))}
@@ -31,7 +31,7 @@ WRITE_INTERVAL = 0.2
 
 if __name__ == '__main__':
     setLogLevel('info')
-    topo = GDPSimulationTopo(n=(NUM_LOG_SERVER + 1), loss_rate=0.001)
+    topo = GDPSimulationTopo(n=(NUM_LOG_SERVER + 1))
     net = Mininet(topo=topo)
     net.start()
     # net.pingAll()

@@ -13,10 +13,11 @@ PATH = sys.argv[3]
 LOGDB_NUM = int(sys.argv[1])
 GLOG_DB = [PATH + "/%s.db" % i for i in range(LOGDB_NUM)]
 WRITE_INTERVAL = float(sys.argv[2])
-MIN_DATA_SIZE = 1024
-MAX_DATA_SIZE = 1025
+MIN_DATA_SIZE = 25600
+MAX_DATA_SIZE = 25601
 CHURN_TIME = [250]
 END_TIME = 500
+FAULTY_POSSIBILITY = 0.01
 
 
 print("WRITER BEGINS")
@@ -38,11 +39,21 @@ if __name__ == '__main__':
                        server_id=server_to_die)
             churn_file.write(str(log) + "\n")
             churn_file.flush()
+        rand1, rand2 = random.uniform(0, 1), random.uniform(0, 1)
+        # making faults:
+        if rand1 <= FAULTY_POSSIBILITY:
+            prev_hash = get_hash(str(random.getrandbits(256)))
+            print("made hole")
+        elif rand2 <= FAULTY_POSSIBILITY:
+            branch_pos = random.randint(0, len(written_hash) - 2)
+            prev_hash = written_hash[branch_pos]
+            print("made branch")
+        else:
+            prev_hash = written_hash[-1]
         curr_hash = get_hash(str(random.getrandbits(256)))
         data_size = random.randint(MIN_DATA_SIZE, MAX_DATA_SIZE)
-        curr_data = get_hash(str(random.getrandbits(1024)))
+        curr_data = get_hash(str(random.getrandbits(data_size)))
         curr_sig = get_hash(str(random.getrandbits(100)))
-        prev_hash = written_hash[-1]
         random.shuffle(servers)
         chosen = servers[:(LOGDB_NUM//2 + 1)]
         for i in chosen:
