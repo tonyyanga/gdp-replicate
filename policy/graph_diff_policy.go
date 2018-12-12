@@ -146,12 +146,19 @@ func (policy *GraphDiffPolicy) GenerateMessage(dest gdplogd.HashAddr) *Message {
 	// generate message
 	var buf bytes.Buffer
 	buf.WriteString("begins\n")
-	addrListToReader(policy.currentGraph.GetLogicalBegins(), &buf)
+	begins := policy.currentGraph.GetLogicalBegins()
+	addrListToReader(begins, &buf)
 
 	buf.WriteString("ends\n")
-	addrListToReader(policy.currentGraph.GetLogicalEnds(), &buf)
+	ends := policy.currentGraph.GetLogicalEnds()
+	addrListToReader(ends, &buf)
 
 	zap.S().Infof("Generate msg %v", first)
+	zap.S().Infow(
+		"Generating message 0 WERFOIJJ",
+		"numBegins", len(begins),
+		"numEnds", len(ends),
+	)
 
 	return &Message{
 		Type: first,
@@ -258,14 +265,22 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAdd
 		return nil
 	}
 
+	begins := graph.GetLogicalBegins()
 	buf.WriteString("begins\n")
-	addrListToReader(graph.GetLogicalBegins(), &buf)
+	addrListToReader(begins, &buf)
 
+	ends := graph.GetLogicalEnds()
 	buf.WriteString("ends\n")
-	addrListToReader(graph.GetLogicalEnds(), &buf)
+	addrListToReader(ends, &buf)
 
 	policy.peerLastMsgType[src] = firstMsgRecved
 	zap.S().Infof("Generate msg %v", second)
+	zap.S().Infow(
+		"Generating message 1 SDLKJKJ",
+		"numRecords", len(nodesToSend),
+		"numBegins", len(begins),
+		"numEnds", len(ends),
+	)
 
 	return &Message{
 		Type: second,
@@ -303,6 +318,7 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 	nodeMap := graph.GetNodeMap()
 
 	nodesToSend := make([]gdplogd.HashAddr, 0)
+	componentsToSend := make([]gdplogd.HashAddr, 0)
 	requests := make([]gdplogd.HashAddr, 0)
 
 	myBeginsEndsToSend := make(map[gdplogd.HashAddr]int)
@@ -342,18 +358,19 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 	for _, begin := range myBeginsNotMatched {
 		if _, found := myBeginsEndsToSend[begin]; !found {
 			// Add the connected component to nodesToSend
-			nodesToSend = append(nodesToSend, begin)
+			componentsToSend = append(componentsToSend, begin)
 		}
 	}
 
 	for _, end := range myEndsNotMatched {
 		if _, found := myBeginsEndsToSend[end]; !found {
 			// Add the connected component to nodesToSend
-			nodesToSend = append(nodesToSend, end)
+			componentsToSend = append(componentsToSend, end)
 		}
 	}
 
-	nodesToSend = ctx.getConnectedAddrs(nodesToSend)
+	componentsToSend = ctx.getConnectedAddrs(componentsToSend)
+	nodesToSend = append(nodesToSend, componentsToSend...)
 
 	var buf bytes.Buffer
 	buf.WriteString("requests\n")
@@ -365,6 +382,12 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 		policy.resetPeerStatus(src)
 		return nil
 	}
+
+	zap.S().Infow(
+		"Generating message 2 NWFEIJ",
+		"numRecords", len(nodesToSend),
+		"numRequests", len(requests),
+	)
 
 	policy.peerLastMsgType[src] = thirdMsgSent
 
@@ -404,6 +427,10 @@ func (policy *GraphDiffPolicy) processThirdMsg(msg *Message, src gdplogd.HashAdd
 		return nil
 	}
 
+	zap.S().Infow(
+		"Generating message 3 SDFW",
+		"numRecords", len(addrs),
+	)
 	ret := &Message{
 		Type: fourth,
 		Body: retBody,
