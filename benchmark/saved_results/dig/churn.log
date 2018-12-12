@@ -1,0 +1,15 @@
+{'timestamp': '2018-12-12 03:18:49.320407', 'event': 'hole'}
+{'timestamp': '2018-12-12 03:18:51.398632', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:18:58.681186', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:19:08.482044', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:19:18.962667', 'event': 'hole'}
+{'timestamp': '2018-12-12 03:19:22.471858', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:19:42.573274', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:19:44.433802', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:19:45.122714', 'event': 'hole'}
+{'timestamp': '2018-12-12 03:19:45.579182', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:19:47.692460', 'written_cnt': 250, 'server_id': 4}
+{'timestamp': '2018-12-12 03:20:11.031059', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:20:18.777106', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:20:23.523225', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:20:34.006750', 'event': 'branch'}
