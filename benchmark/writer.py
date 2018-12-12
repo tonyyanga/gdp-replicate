@@ -4,8 +4,8 @@ import datetime
 from gdb_log_utils import *
 import sys
 
-if len(sys.argv) != 4:
-    print("NUMBER_LOG_SERVER, WRITE_INTERVAL, PATH")
+if len(sys.argv) != 5:
+    print("NUMBER_LOG_SERVER, WRITE_INTERVAL, PATH, FAULTY_RATE")
     sys.exit(3)
 
 
@@ -17,7 +17,7 @@ MIN_DATA_SIZE = 25600
 MAX_DATA_SIZE = 25601
 CHURN_TIME = [250]
 END_TIME = 500
-FAULTY_POSSIBILITY = 0.01
+FAULTY_POSSIBILITY = float(sys.argv[4])
 
 
 print("WRITER BEGINS")
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         curr_data = get_hash(str(random.getrandbits(data_size)))
         curr_sig = get_hash(str(random.getrandbits(100)))
         random.shuffle(servers)
-        chosen = servers[:(LOGDB_NUM//2 + 1)]
+        chosen = servers#[:(LOGDB_NUM//2 + 1)]
         for i in chosen:
             conn = connections[i]
             c = conn.cursor()
