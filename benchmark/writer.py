@@ -32,7 +32,7 @@ if __name__ == '__main__':
     while cnt <= END_TIME:
         if cnt in CHURN_TIME:
             # randint is inclusive on both side
-            server_to_die = 0 #random.randint(0, LOGDB_NUM - 1)
+            server_to_die = random.randint(0, LOGDB_NUM - 1)
             wipe_all_records(PATH + "/%s.db" % server_to_die)
             log = dict(timestamp=str(datetime.datetime.now()),
                        written_cnt=cnt,
@@ -43,11 +43,17 @@ if __name__ == '__main__':
         # making faults:
         if rand1 <= FAULTY_POSSIBILITY:
             prev_hash = get_hash(str(random.getrandbits(256)))
-            print("made hole")
+            log = dict(timestamp=str(datetime.datetime.now()),
+                       event='hole')
+            churn_file.write(str(log) + "\n")
+            churn_file.flush()
         elif rand2 <= FAULTY_POSSIBILITY:
             branch_pos = random.randint(0, len(written_hash) - 2)
             prev_hash = written_hash[branch_pos]
-            print("made branch")
+            log = dict(timestamp=str(datetime.datetime.now()),
+                       event='branch')
+            churn_file.write(str(log) + "\n")
+            churn_file.flush()
         else:
             prev_hash = written_hash[-1]
         curr_hash = get_hash(str(random.getrandbits(256)))
