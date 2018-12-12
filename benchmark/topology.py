@@ -23,11 +23,10 @@ if len(sys.argv) != 7:
     sys.exit(2)
 
 NUM_LOG_SERVER = int(sys.argv[1])
-WRITE_ITERVAL = float(sys.argv[2])
+WRITE_INTERVAL = float(sys.argv[2])
 FANOUT = int(sys.argv[3])
 ALGO = sys.argv[4]
 PORT = 10262
-WRITE_INTERVAL = 0.2
 FAULT_RATE = float(sys.argv[5])
 CHURN = sys.argv[6]
 

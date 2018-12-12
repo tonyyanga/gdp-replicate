@@ -3,6 +3,7 @@ import time
 import datetime
 from gdb_log_utils import *
 import sys
+import math
 
 if len(sys.argv) != 6:
     print("NUMBER_LOG_SERVER, WRITE_INTERVAL, PATH, FAULTY_RATE, CHURN")
@@ -17,8 +18,8 @@ MIN_DATA_SIZE = 24000
 MAX_DATA_SIZE = 24001
 CHURN_TIME = []
 if sys.argv[5] == "churn":
-    CHURN_TIME = [150, 300]
-END_TIME = 500
+    CHURN_TIME = [150]
+END_TIME = 300
 FAULTY_POSSIBILITY = float(sys.argv[4])
 print("WRITER BEGINS", FAULTY_POSSIBILITY)
 
@@ -35,10 +36,9 @@ if __name__ == '__main__':
             churn_cnt = int(math.ceil(LOGDB_NUM / 3.0))
             random.shuffle(servers)
             servers_to_die = servers[:churn_cnt]
-            for sever in servers_to_die:
+            for server in servers_to_die:
                 wipe_all_records(PATH + "/%s.db" % server)
                 log = dict(timestamp=str(datetime.datetime.now()),
-                           written_cnt=cnt,
                            server_id=server)
                 churn_file.write(str(log) + "\n")
             churn_file.flush()
