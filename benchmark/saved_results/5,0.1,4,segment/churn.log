@@ -1,0 +1,10 @@
+{'timestamp': '2018-12-12 03:11:27.319548', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:11:29.535653', 'event': 'hole'}
+{'timestamp': '2018-12-12 03:11:31.086198', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:11:32.649762', 'event': 'hole'}
+{'timestamp': '2018-12-12 03:12:11.870028', 'event': 'hole'}
+{'timestamp': '2018-12-12 03:12:19.011758', 'written_cnt': 250, 'server_id': 4}
+{'timestamp': '2018-12-12 03:12:26.910286', 'event': 'hole'}
+{'timestamp': '2018-12-12 03:12:29.250651', 'event': 'branch'}
+{'timestamp': '2018-12-12 03:12:31.929562', 'event': 'hole'}
+{'timestamp': '2018-12-12 03:13:08.880477', 'event': 'hole'}
