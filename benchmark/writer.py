@@ -4,8 +4,8 @@ import datetime
 from gdb_log_utils import *
 import sys
 
-if len(sys.argv) != 5:
-    print("NUMBER_LOG_SERVER, WRITE_INTERVAL, PATH, FAULTY_RATE")
+if len(sys.argv) != 6:
+    print("NUMBER_LOG_SERVER, WRITE_INTERVAL, PATH, FAULTY_RATE, CHURN")
     sys.exit(3)
 
 
@@ -13,14 +13,14 @@ PATH = sys.argv[3]
 LOGDB_NUM = int(sys.argv[1])
 GLOG_DB = [PATH + "/%s.db" % i for i in range(LOGDB_NUM)]
 WRITE_INTERVAL = float(sys.argv[2])
-MIN_DATA_SIZE = 25600
-MAX_DATA_SIZE = 25601
-CHURN_TIME = [250]
+MIN_DATA_SIZE = 24000
+MAX_DATA_SIZE = 24001
+CHURN_TIME = []
+if sys.argv[5] == "churn":
+    CHURN_TIME = [150, 300]
 END_TIME = 500
 FAULTY_POSSIBILITY = float(sys.argv[4])
-
-
-print("WRITER BEGINS")
+print("WRITER BEGINS", FAULTY_POSSIBILITY)
 
 if __name__ == '__main__':
     written_hash = [get_blob('0')]
@@ -32,12 +32,15 @@ if __name__ == '__main__':
     while cnt <= END_TIME:
         if cnt in CHURN_TIME:
             # randint is inclusive on both side
-            server_to_die = random.randint(0, LOGDB_NUM - 1)
-            wipe_all_records(PATH + "/%s.db" % server_to_die)
-            log = dict(timestamp=str(datetime.datetime.now()),
-                       written_cnt=cnt,
-                       server_id=server_to_die)
-            churn_file.write(str(log) + "\n")
+            churn_cnt = int(math.ceil(LOGDB_NUM / 3.0))
+            random.shuffle(servers)
+            servers_to_die = servers[:churn_cnt]
+            for sever in servers_to_die:
+                wipe_all_records(PATH + "/%s.db" % server)
+                log = dict(timestamp=str(datetime.datetime.now()),
+                           written_cnt=cnt,
+                           server_id=server)
+                churn_file.write(str(log) + "\n")
             churn_file.flush()
         rand1, rand2 = random.uniform(0, 1), random.uniform(0, 1)
         # making faults:
@@ -61,7 +64,7 @@ if __name__ == '__main__':
         curr_data = get_hash(str(random.getrandbits(data_size)))
         curr_sig = get_hash(str(random.getrandbits(100)))
         random.shuffle(servers)
-        chosen = servers#[:(LOGDB_NUM//2 + 1)]
+        chosen = servers[:(LOGDB_NUM//2 + 1)]
         for i in chosen:
             conn = connections[i]
             c = conn.cursor()

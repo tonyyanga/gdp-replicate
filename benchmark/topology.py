@@ -18,8 +18,8 @@ class GDPSimulationTopo(Topo):
 
 # topos = {'simple': (lambda: GDPSimulationTopo(3, None)), 'lossy': (lambda: GDPSimulationTopo(3, 0.01))}
 
-if len(sys.argv) != 6:
-    print ('NUM_LOG_SERVER, WRITE_ITERVAL, FANOUT, ALGO, FAULT_RATE')
+if len(sys.argv) != 7:
+    print ('NUM_LOG_SERVER, WRITE_ITERVAL, FANOUT, ALGO, FAULT_RATE, churn/no_churn')
     sys.exit(2)
 
 NUM_LOG_SERVER = int(sys.argv[1])
@@ -29,6 +29,7 @@ ALGO = sys.argv[4]
 PORT = 10262
 WRITE_INTERVAL = 0.2
 FAULT_RATE = float(sys.argv[5])
+CHURN = sys.argv[6]
 
 if __name__ == '__main__':
     setLogLevel('info')
@@ -62,7 +63,7 @@ if __name__ == '__main__':
             server_cmd.remove('naive')
         server.cmdPrint(server_cmd) 
     writer.cmdPrint('sudo python3 writer.py',
-                     NUM_LOG_SERVER, WRITE_INTERVAL, path, FAULT_RATE,
+                     NUM_LOG_SERVER, WRITE_INTERVAL, path, FAULT_RATE, CHURN,
                     '&')
     time.sleep(1000)
     net.stop()
