@@ -146,12 +146,19 @@ func (policy *GraphDiffPolicy) GenerateMessage(dest gdplogd.HashAddr) *Message {
 	// generate message
 	var buf bytes.Buffer
 	buf.WriteString("begins\n")
-	addrListToReader(policy.currentGraph.GetLogicalBegins(), &buf)
+	begins := policy.currentGraph.GetLogicalBegins()
+	addrListToReader(begins, &buf)
 
 	buf.WriteString("ends\n")
-	addrListToReader(policy.currentGraph.GetLogicalEnds(), &buf)
+	ends := policy.currentGraph.GetLogicalEnds()
+	addrListToReader(ends, &buf)
 
 	zap.S().Infof("Generate msg %v", first)
+	zap.S().Infow(
+		"Generating message 0 WERFOIJJ",
+		"numBegins", len(begins),
+		"numEnds", len(ends),
+	)
 
 	return &Message{
 		Type: first,
@@ -258,14 +265,22 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *Message, src gdplogd.HashAdd
 		return nil
 	}
 
+	begins := graph.GetLogicalBegins()
 	buf.WriteString("begins\n")
-	addrListToReader(graph.GetLogicalBegins(), &buf)
+	addrListToReader(begins, &buf)
 
+	ends := graph.GetLogicalEnds()
 	buf.WriteString("ends\n")
-	addrListToReader(graph.GetLogicalEnds(), &buf)
+	addrListToReader(ends, &buf)
 
 	policy.peerLastMsgType[src] = firstMsgRecved
 	zap.S().Infof("Generate msg %v", second)
+	zap.S().Infow(
+		"Generating message 1 SDLKJKJ",
+		"numRecords", len(nodesToSend),
+		"numBegins", len(begins),
+		"numEnds", len(ends),
+	)
 
 	return &Message{
 		Type: second,
@@ -366,6 +381,12 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *Message, src gdplogd.HashAd
 		return nil
 	}
 
+	zap.S().Infow(
+		"Generating message 2 NWFEIJ",
+		"numRecords", len(nodesToSend),
+		"numRequests", len(requests),
+	)
+
 	policy.peerLastMsgType[src] = thirdMsgSent
 
 	zap.S().Infof("Generate msg %v", third)
@@ -404,6 +425,10 @@ func (policy *GraphDiffPolicy) processThirdMsg(msg *Message, src gdplogd.HashAdd
 		return nil
 	}
 
+	zap.S().Infow(
+		"Generating message 3 SDFW",
+		"numRecords", len(addrs),
+	)
 	ret := &Message{
 		Type: fourth,
 		Body: retBody,
