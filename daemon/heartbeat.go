@@ -4,9 +4,11 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/tonyyanga/gdp-replicate/gdplogd"
+	"github.com/tonyyanga/gdp-replicate/gdp"
 	"go.uber.org/zap"
 )
+
+type heartBeatSender func() error
 
 // Send a heart beat every INTERVAL seconds
 func (daemon Daemon) scheduleHeartBeat(interval int, heartBeat heartBeatSender) error {
@@ -14,6 +16,9 @@ func (daemon Daemon) scheduleHeartBeat(interval int, heartBeat heartBeatSender) 
 		"scheduling heartbeat",
 		"interval", interval,
 	)
+	// Sleep for a random amount of time less than one heart beat interval
+	// to make sending heartbeats between pairs unlikely
+	time.Sleep(time.Duration(rand.Intn(interval)) * time.Millisecond)
 	ticker := time.NewTicker(time.Duration(interval) * time.Millisecond)
 	for _ = range ticker.C {
 		err := heartBeat()
@@ -25,29 +30,28 @@ func (daemon Daemon) scheduleHeartBeat(interval int, heartBeat heartBeatSender) 
 }
 
 // Sends a heartbeat message to PEER if necessary
-func (daemon Daemon) sendHeartBeat(peer gdplogd.HashAddr) error {
-	// Update the graph view before generating message
-	daemon.policy.UpdateCurrGraph()
-	msg := daemon.policy.GenerateMessage(peer)
+func (daemon Daemon) sendHeartBeat(peer gdp.Hash) error {
+	msg, err := daemon.policy.GenerateMessage(peer)
+	if err != nil {
+		return err
+	}
 
 	// A msg may not need to be sent
 	if msg == nil {
 		zap.S().Infow(
 			"no heartbeat sent",
-			"dst", gdplogd.ReadableAddr(peer),
+			"dst", peer.Readable(),
 		)
 		return nil
 	}
 
 	zap.S().Infow(
 		"heart beat sent",
-		"dst", gdplogd.ReadableAddr(peer),
+		"dst", peer.Readable(),
 		"msg", msg,
 	)
-	return daemon.network.Send(daemon.myAddr, peer, msg)
+	return daemon.network.Send(peer, msg)
 }
-
-type heartBeatSender func() error
 
 // Send a heartbeat message to one of daemon peers.
 // Cycles through each of the peers
@@ -85,6 +89,10 @@ func (daemon Daemon) fanOutHeartBeat(fanoutDegree int) heartBeatSender {
 		for _, peerIndex := range peerIndices {
 			err := daemon.sendHeartBeat(daemon.peerList[peerIndex])
 			if err != nil {
+				zap.S().Errorw(
+					"Failed to send heartbeat",
+					"error", err,
+				)
 				return err
 			}
 		}
