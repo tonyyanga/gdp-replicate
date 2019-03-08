@@ -36,7 +36,7 @@ type Policy interface {
 	// data items from the graph
 	// getLogDaemonConnection() gdplogd.LogDaemonConnection
 
-	// UpdateeCurrGraph updates the policy's view of the log
+	// UpdateCurrGraph updates the policy's view of the log
 	// UpdateCurrGraph() error
 
 	// Generate message to be sent to a server at dest

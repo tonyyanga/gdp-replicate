@@ -2,6 +2,8 @@ package loggraph
 
 import "github.com/tonyyanga/gdp-replicate/gdp"
 
+// TODO(tonyyanga): is there a better name for it?
+// A SimpleGraphClone is a readonly deep copy of a simple graph
 type SimpleGraphClone struct {
 	forwardEdges  map[gdp.Hash][]gdp.Hash
 	backwardEdges map[gdp.Hash]gdp.Hash

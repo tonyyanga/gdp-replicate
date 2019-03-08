@@ -57,7 +57,7 @@ func (policy *NaivePolicy) GenerateMessage(
 	policy.initPeerIfNeeded(dest)
 
 	msg := &NaiveMsgContent{}
-	msg.HashesAll = policy.getAllLogHashes()
+	msg.HashesAll = policy.getAllRecordHashes()
 	msg.MsgNum = first
 
 	policy.myState[dest] = initHeartBeat
@@ -105,13 +105,13 @@ func (policy *NaivePolicy) processFirstMsg(
 	zap.S().Infow("processing first msg")
 
 	// compute my hashes
-	myHashes := policy.getAllLogHashes()
+	myHashes := policy.getAllRecordHashes()
 
 	// find the differences
 	onlyMine, onlyTheirs := findDifferences(myHashes, msg.HashesAll)
 
-	// load the logs with hashes that only I have
-	onlyMyLogs, err := policy.logGraph.ReadRecords(onlyMine)
+	// load the records with hashes that only I have
+	onlyMyRecords, err := policy.logGraph.ReadRecords(onlyMine)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func (policy *NaivePolicy) processFirstMsg(
 	responseContent := &NaiveMsgContent{
 		MsgNum:         second,
 		HashesTheyWant: onlyTheirs,
-		RecordsWeWant:  onlyMyLogs,
+		RecordsWeWant:  onlyMyRecords,
 	}
 	policy.myState[src] = receiveHeartBeat
 	return responseContent, nil
@@ -145,7 +145,7 @@ func (policy *NaivePolicy) processSecondMsg(
 	err = policy.logGraph.WriteRecords(msg.RecordsWeWant)
 	if err != nil {
 		zap.S().Errorw(
-			"Failed to save given logs",
+			"Failed to save given records",
 			"error", err.Error(),
 		)
 		return nil, err
