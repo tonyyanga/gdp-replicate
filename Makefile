@@ -1,5 +1,5 @@
 run: deps
-	GOPATH=$(CURDIR)/.go go build
+	GOPATH=$(CURDIR)/.go go build -o gdp_replicate.so -buildmode=c-shared
 
 deps:
 	rm -Rf $(CURDIR)/.go/src/github.com/tonyyanga/gdp-replicate

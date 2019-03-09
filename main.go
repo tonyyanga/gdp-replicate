@@ -1,69 +1,39 @@
 package main
 
-import (
-	"crypto/sha256"
-	"os"
-	"strconv"
-	"strings"
+// #include "gdp_types.h"
+// #include "gdp_helper.h"
+import "C"
 
-	"github.com/tonyyanga/gdp-replicate/daemon"
-	"github.com/tonyyanga/gdp-replicate/gdp"
-	"go.uber.org/zap"
-)
-
-func main() {
-	if len(os.Args) < 4 {
-		panic("Requires arguments: SQL file, listen address, peer address, fanout degree [optional:naive]")
-	}
-
-	sqlFile := os.Args[1]
-
-	listenAddr := os.Args[2]
-	selfGDPAddr := gdp.GenerateHash(listenAddr)
-
-	daemon.InitLogger(selfGDPAddr)
-	peerMap := parsePeers(os.Args[3])
-
-	fanoutDegree, err := strconv.Atoi(os.Args[4])
-	if err != nil {
-		panic("unable to parse fanout degree")
-	}
-
-	var d *daemon.Daemon
-	if len(os.Args) >= 6 && os.Args[5] == "naive" {
-		d, err = daemon.NewDaemon(listenAddr, sqlFile, selfGDPAddr, peerMap, "naive")
-	} else {
-		panic("Regular daemon not supported rn")
-	}
-
-	if err != nil {
-		panic(err)
-	}
-
-	err = d.Start(fanoutDegree)
-	if err != nil {
-		panic(err)
-	}
-
+/* CreateLogSyncHandle creates the context for a log in the log server.
+   The returned LogSyncHandle manages the global sync status of this log. */
+//export CreateLogSyncHandle
+func CreateLogSyncHandle(sqlFile string, callback C.MsgCallbackFunc) C.LogSyncHandle {
+	// TODO
+	return C.LogSyncHandle{}
 }
 
-// parsePeers parses a comma delimited string of IP:ports to a map from
-// GDP addr to IP addr.
-func parsePeers(peers string) map[gdp.Hash]string {
-	peerMap := make(map[gdp.Hash]string)
-	peerAddrs := strings.Split(peers, ",")
-	for _, peerAddr := range peerAddrs {
-		peerGDPAddr := sha256.Sum256([]byte(peerAddr))
-		peerMap[peerGDPAddr] = peerAddr
-	}
+/* Call ReleaseLogSyncHandle to release corresponding memory in Go */
+//export ReleaseLogSyncHandle
+func ReleaseLogSyncHandle(handle C.LogSyncHandle) {
+	// TODO
+}
 
-	for gdpAddr, httpAddr := range peerMap {
-		zap.S().Infow(
-			"Added peer",
-			"gdpAddr", gdpAddr.Readable(),
-			"httpAddr", httpAddr,
-		)
-	}
-	return peerMap
+/* Synchronization messages will be passed to the user via the MsgCallbackFunc
+   provided. Therefore none of the sync related functions have return values. */
 
+/* Trigger a sync with a given peer */
+//export InitSync
+func InitSync(handle C.LogSyncHandle, peer C.PeerAddr) {
+	// TODO
+}
+
+/* Provide an incoming message to the library to process
+   This function releases data in msg. */
+//export HandleMsg
+func HandleMsg(handle C.LogSyncHandle, peer C.PeerAddr, msg C.Msg) {
+	// TODO
+}
+
+// empty main func required to compile to a shared library
+func main() {
 }
