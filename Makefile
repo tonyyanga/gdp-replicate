@@ -7,5 +7,6 @@ deps:
 	GOPATH=$(CURDIR)/.go go get -d
 
 clean:
-	rm $(CURDIR)/.go/src/github.com/tonyyanga/gdp-replicate/gdp-replicate
+	rm $(CURDIR)/.go/src/github.com/tonyyanga/gdp-replicate/gdp_replicate.so
+	rm $(CURDIR)/.go/src/github.com/tonyyanga/gdp-replicate/gdp_replicate.h
 	rm -Rf $(CURDIR)/.go/src/github.com/tonyyanga/gdp-replicate
