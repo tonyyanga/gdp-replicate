@@ -8,20 +8,35 @@ import "C"
 import (
     "errors"
     "math/rand"
+    "database/sql"
+
+    //"github.com/tonyyanga/gdp-replicate/logserver"
 )
 
 type HandleTicket = uint32
 
 type LogSyncCtx struct {
-    // TODO
+    callback MsgCallback // callback handler from user
+    logDB *sql.DB
 }
 
 // Global map from handleTicket in LogSyncHandle to Go context
 var logCtxMap map[HandleTicket]LogSyncCtx
 
-func newLogSyncCtx() LogSyncCtx {
-    return LogSyncCtx{}
-    // TODO
+func newLogSyncCtx(sqlFile string, callback C.MsgCallbackFunc) (HandleTicket, error) {
+    db, err := sql.Open("sqlite3", sqlFile)
+    if err != nil {
+        return 0, err
+    }
+
+    ticket := generateHandleTicket()
+
+    logCtxMap[ticket] = LogSyncCtx{
+        callback: createMsgCallback(callback),
+        logDB: db,
+    }
+
+    return ticket, nil
 }
 
 // Helper func to get log sync ctx from map
