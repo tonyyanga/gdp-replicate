@@ -1,5 +1,6 @@
 package main
 
+// #include <stdint.h>
 // #include "gdp_types.h"
 // #include "gdp_helper.h"
 import "C"
@@ -8,14 +9,18 @@ import "C"
    The returned LogSyncHandle manages the global sync status of this log. */
 //export CreateLogSyncHandle
 func CreateLogSyncHandle(sqlFile string, callback C.MsgCallbackFunc) C.LogSyncHandle {
-	// TODO
-	return C.LogSyncHandle{}
+    ticket := generateHandleTicket()
+    logCtxMap[ticket] = newLogSyncCtx()
+
+    cTicket := *(*C.uint32_t)(&ticket)
+
+    return C.LogSyncHandle{ handleTicket: cTicket }
 }
 
 /* Call ReleaseLogSyncHandle to release corresponding memory in Go */
 //export ReleaseLogSyncHandle
 func ReleaseLogSyncHandle(handle C.LogSyncHandle) {
-	// TODO
+    delete(logCtxMap, uint32(handle.handleTicket))
 }
 
 /* Synchronization messages will be passed to the user via the MsgCallbackFunc
@@ -23,15 +28,17 @@ func ReleaseLogSyncHandle(handle C.LogSyncHandle) {
 
 /* Trigger a sync with a given peer */
 //export InitSync
-func InitSync(handle C.LogSyncHandle, peer C.PeerAddr) {
+func InitSync(handle C.LogSyncHandle, peer C.PeerAddr) error{
 	// TODO
+    return nil
 }
 
 /* Provide an incoming message to the library to process
    This function releases data in msg. */
 //export HandleMsg
-func HandleMsg(handle C.LogSyncHandle, peer C.PeerAddr, msg C.Msg) {
+func HandleMsg(handle C.LogSyncHandle, peer C.PeerAddr, msg C.Msg) error {
 	// TODO
+    return nil
 }
 
 // empty main func required to compile to a shared library
