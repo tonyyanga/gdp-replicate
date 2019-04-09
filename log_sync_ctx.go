@@ -11,12 +11,14 @@ import (
     "database/sql"
 
     //"github.com/tonyyanga/gdp-replicate/logserver"
+    "github.com/tonyyanga/gdp-replicate/policy"
 )
 
 type HandleTicket = uint32
 
 type LogSyncCtx struct {
-    logDB *sql.DB
+    LogDB *sql.DB
+    Policy policy.Policy
 }
 
 // Global map from handleTicket in LogSyncHandle to Go context
@@ -31,7 +33,8 @@ func newLogSyncCtx(sqlFile string) (HandleTicket, error) {
     ticket := generateHandleTicket()
 
     logCtxMap[ticket] = LogSyncCtx{
-        logDB: db,
+        LogDB: db,
+        Policy: nil, // TODO
     }
 
     return ticket, nil

@@ -4,10 +4,16 @@ package main
 // #include "gdp_helper.h"
 import "C"
 
-type MsgCallback func(C.PeerAddr, C.Msg)
+import (
+    "github.com/tonyyanga/gdp-replicate/gdp"
+)
 
-func createMsgCallback(f C.MsgCallbackFunc) MsgCallback {
-    return func(peer C.PeerAddr, msg C.Msg) {
-        C.bridgeMsgCallbackFunc(f, peer, msg)
-    }
+func peerAddrToHash(addr C.PeerAddr) gdp.Hash {
+    // TODO
+    return gdp.NullHash
+}
+
+func toCMsg(msg interface{}) C.Msg {
+    // TODO
+    return C.Msg{}
 }

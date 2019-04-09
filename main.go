@@ -33,8 +33,18 @@ func ReleaseLogSyncHandle(handle C.LogSyncHandle) {
 /* Trigger a sync with a given peer */
 //export InitSync
 func InitSync(handle C.LogSyncHandle, peer C.PeerAddr) C.Msg {
-	// TODO
-    return C.Msg{}
+    ctx, err := getLogSyncCtx(handle)
+    if err != nil {
+        // TODO
+        return C.Msg{}
+    }
+
+    gdpAddr := peerAddrToHash(peer)
+
+    policy := ctx.Policy
+    msg, err := policy.GenerateMessage(gdpAddr)
+
+    return toCMsg(msg)
 }
 
 /* Provide an incoming message to the library to process
