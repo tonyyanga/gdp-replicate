@@ -16,14 +16,13 @@ import (
 type HandleTicket = uint32
 
 type LogSyncCtx struct {
-    callback MsgCallback // callback handler from user
     logDB *sql.DB
 }
 
 // Global map from handleTicket in LogSyncHandle to Go context
 var logCtxMap map[HandleTicket]LogSyncCtx
 
-func newLogSyncCtx(sqlFile string, callback C.MsgCallbackFunc) (HandleTicket, error) {
+func newLogSyncCtx(sqlFile string) (HandleTicket, error) {
     db, err := sql.Open("sqlite3", sqlFile)
     if err != nil {
         return 0, err
@@ -32,7 +31,6 @@ func newLogSyncCtx(sqlFile string, callback C.MsgCallbackFunc) (HandleTicket, er
     ticket := generateHandleTicket()
 
     logCtxMap[ticket] = LogSyncCtx{
-        callback: createMsgCallback(callback),
         logDB: db,
     }
 
