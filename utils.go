@@ -17,3 +17,8 @@ func toCMsg(msg interface{}) C.Msg {
     // TODO
     return C.Msg{}
 }
+
+func toGoMsg(msg C.Msg) interface{} {
+    // TODO
+    return nil
+}

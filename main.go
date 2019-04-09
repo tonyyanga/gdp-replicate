@@ -51,8 +51,18 @@ func InitSync(handle C.LogSyncHandle, peer C.PeerAddr) C.Msg {
    This function releases data in msg. */
 //export HandleMsg
 func HandleMsg(handle C.LogSyncHandle, peer C.PeerAddr, msg C.Msg) C.Msg {
-	// TODO
-    return C.Msg{}
+    ctx, err := getLogSyncCtx(handle)
+    if err != nil {
+        // TODO
+        return C.Msg{}
+    }
+
+    gdpAddr := peerAddrToHash(peer)
+
+    policy := ctx.Policy
+    respMsg, err := policy.ProcessMessage(gdpAddr, toGoMsg(msg))
+
+    return toCMsg(respMsg)
 }
 
 // empty main func required to compile to a shared library
