@@ -6,58 +6,78 @@ package main
 import "C"
 
 import (
-    "errors"
-    "math/rand"
-    "database/sql"
+	"database/sql"
+	"errors"
+	"math/rand"
 
-    //"github.com/tonyyanga/gdp-replicate/logserver"
-    "github.com/tonyyanga/gdp-replicate/policy"
+	"github.com/tonyyanga/gdp-replicate/loggraph"
+	"github.com/tonyyanga/gdp-replicate/logserver"
+	"github.com/tonyyanga/gdp-replicate/policy"
+	"go.uber.org/zap"
+	//"github.com/tonyyanga/gdp-replicate/logserver"
 )
 
 type HandleTicket = uint32
 
 type LogSyncCtx struct {
-    LogDB *sql.DB
-    Policy policy.Policy
+	Policy    policy.Policy
+	logServer logserver.LogServer
+	logGraph  loggraph.LogGraph
 }
 
 // Global map from handleTicket in LogSyncHandle to Go context
 var logCtxMap map[HandleTicket]LogSyncCtx
 
 func newLogSyncCtx(sqlFile string) (HandleTicket, error) {
-    db, err := sql.Open("sqlite3", sqlFile)
-    if err != nil {
-        return 0, err
-    }
+	db, err := sql.Open("sqlite3", sqlFile)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to open sqlite database",
+			"sqlite-file", sqlFile,
+			"error", err,
+		)
+		return 0, err
+	}
+	logServer := logserver.NewSqliteServer(db)
+	logGraph, err := loggraph.NewSimpleGraph(logServer)
+	if err != nil {
+		zap.S().Errorw(
+			"Failed to create log graph",
+			"sqlite-file", sqlFile,
+			"error", err,
+		)
+		return 0, err
+	}
 
-    ticket := generateHandleTicket()
+	ticket := generateHandleTicket()
 
-    logCtxMap[ticket] = LogSyncCtx{
-        LogDB: db,
-        Policy: nil, // TODO
-    }
+	logCtxMap[ticket] = LogSyncCtx{
+		logServer: logServer,
+		logGraph:  logGraph,
+		Policy:    nil, // TODO
+	}
 
-    return ticket, nil
+	return ticket, nil
 }
 
 // Helper func to get log sync ctx from map
 func getLogSyncCtx(handle C.LogSyncHandle) (*LogSyncCtx, error) {
-    ticket := uint32(handle.handleTicket)
+	ticket := uint32(handle.handleTicket)
 
-    result, ok := logCtxMap[ticket]
-    if !ok {
-        return nil, errors.New("Undefined log sync handle")
-    } else {
-        return &result, nil
-    }
+	result, ok := logCtxMap[ticket]
+	if !ok {
+		return nil, errors.New("Undefined log sync handle")
+	} else {
+		return &result, nil
+	}
 }
 
 // Generate random ticket not in the map
 func generateHandleTicket() HandleTicket {
-    for {
-        ticket := rand.Uint32()
-        if _, ok := logCtxMap[ticket]; !ok {
-            return ticket
-        }
-    }
+	for {
+		ticket := rand.Uint32()
+		if _, ok := logCtxMap[ticket]; !ok {
+			return ticket
+		}
+	}
 }

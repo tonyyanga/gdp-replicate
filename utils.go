@@ -5,20 +5,20 @@ package main
 import "C"
 
 import (
-    "github.com/tonyyanga/gdp-replicate/gdp"
+	"github.com/tonyyanga/gdp-replicate/gdp"
 )
 
 func peerAddrToHash(addr C.PeerAddr) gdp.Hash {
-    // TODO
-    return gdp.NullHash
+	// TODO
+	return gdp.NullHash
 }
 
 func toCMsg(msg interface{}) C.Msg {
-    // TODO
-    return C.Msg{}
+	// TODO
+	return C.Msg{}
 }
 
 func toGoMsg(msg C.Msg) interface{} {
-    // TODO
-    return nil
+	// TODO
+	return nil
 }
