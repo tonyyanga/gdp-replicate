@@ -42,11 +42,11 @@ func ReleaseLogSyncHandle(handle C.LogSyncHandle) {
 
 /* Trigger a sync with a given peer */
 //export InitSync
-func InitSync(handle C.LogSyncHandle, peer C.PeerAddr) C.Msg {
+func InitSync(handle C.LogSyncHandle, peer C.PeerAddr) (C.Msg, C.int) {
 	ctx, err := getLogSyncCtx(handle)
 	if err != nil {
 		// TODO
-		return C.Msg{}
+		return C.Msg{}, 1
 	}
 
 	gdpAddr := peerAddrToHash(peer)
@@ -54,17 +54,17 @@ func InitSync(handle C.LogSyncHandle, peer C.PeerAddr) C.Msg {
 	policy := ctx.Policy
 	msg, err := policy.GenerateMessage(gdpAddr)
 
-	return toCMsg(msg)
+	return toCMsg(msg), 0
 }
 
 /* Provide an incoming message to the library to process
    This function releases data in msg. */
 //export HandleMsg
-func HandleMsg(handle C.LogSyncHandle, peer C.PeerAddr, msg C.Msg) C.Msg {
+func HandleMsg(handle C.LogSyncHandle, peer C.PeerAddr, msg C.Msg) (C.Msg, C.int) {
 	ctx, err := getLogSyncCtx(handle)
 	if err != nil {
 		// TODO
-		return C.Msg{}
+		return C.Msg{}, 1
 	}
 
 	gdpAddr := peerAddrToHash(peer)
@@ -72,7 +72,7 @@ func HandleMsg(handle C.LogSyncHandle, peer C.PeerAddr, msg C.Msg) C.Msg {
 	policy := ctx.Policy
 	respMsg, err := policy.ProcessMessage(gdpAddr, toGoMsg(msg))
 
-	return toCMsg(respMsg)
+	return toCMsg(respMsg), 0
 }
 
 // empty main func required to compile to a shared library
