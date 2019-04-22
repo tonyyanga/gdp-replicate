@@ -5,12 +5,17 @@ package main
 import "C"
 
 import (
+    "unsafe"
+)
+
+import (
 	"github.com/tonyyanga/gdp-replicate/gdp"
 )
 
 func peerAddrToHash(addr C.PeerAddr) gdp.Hash {
-	// TODO
-	return gdp.NullHash
+    var ret gdp.Hash
+    copy(ret[:], C.GoBytes(unsafe.Pointer(&addr.addr), 32))
+    return ret
 }
 
 func toCMsg(msg interface{}) C.Msg {

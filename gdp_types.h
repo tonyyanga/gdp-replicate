@@ -6,7 +6,9 @@
 /* This file includes types for the C API
  * of gdp_replicate library */
 
-typedef uint32_t PeerAddr;
+typedef struct {
+   char addr[32];
+} PeerAddr; // 256-bit GDP address
 
 /* LogSyncHandle allows access to global sync status of this log.
  * Allocation and release should be handled by Go */
