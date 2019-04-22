@@ -53,6 +53,10 @@ func InitSync(handle C.LogSyncHandle, peer C.PeerAddr) (C.Msg, C.int) {
 
 	policy := ctx.Policy
 	msg, err := policy.GenerateMessage(gdpAddr)
+    if err != nil {
+        // TODO
+        return C.Msg{}, 1
+    }
 
 	return toCMsg(msg), 0
 }
@@ -71,12 +75,17 @@ func HandleMsg(handle C.LogSyncHandle, peer C.PeerAddr, msg C.Msg) (C.Msg, C.int
 
 	policy := ctx.Policy
 	respMsg, err := policy.ProcessMessage(gdpAddr, toGoMsg(msg))
+    if err != nil {
+        // TODO
+        return C.Msg{}, 1
+    }
 
 	return toCMsg(respMsg), 0
 }
 
 // empty main func required to compile to a shared library
 func main() {
+    // TODO: I think main should be empty. Where do I initialize?
 	selfGDPAddr := gdp.GenerateHash("some identifier")
 	daemon.InitLogger(selfGDPAddr)
 }
