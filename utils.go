@@ -6,6 +6,7 @@ import "C"
 
 import (
     "unsafe"
+    "reflect"
     "bytes"
     "encoding/gob"
 
@@ -35,7 +36,15 @@ func toCMsg(msg interface{}) C.Msg {
     length := dest.Len()
     destBytes := dest.Bytes()
     destCArray := C.malloc(C.size_t(C.int(length)))
-    copy(C.GoBytes(unsafe.Pointer(destCArray), C.int(length)), destBytes[:])
+
+    // create a temporary slice as copy destination
+    slice := &reflect.SliceHeader{
+        Data: uintptr(unsafe.Pointer(destCArray)),
+        Len: length,
+        Cap: length,
+    }
+
+    copy(*(*[]byte)(unsafe.Pointer(slice)), destBytes)
 
 	return C.Msg{
         length: C.uint(length),
@@ -48,10 +57,10 @@ func toGoMsg(msg C.Msg) interface{} {
     length := msg.length
     srcCArray := msg.data
 
-    var srcBytes []byte
+    srcBytes := make([]byte, int(length))
     copy(srcBytes, C.GoBytes(unsafe.Pointer(srcCArray), C.int(length)))
 
-    src := bytes.NewBuffer(srcBytes)
+    src := bytes.NewReader(srcBytes)
 
     decoder := gob.NewDecoder(src)
     gob.Register(&policy.NaiveMsgContent{})

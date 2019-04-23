@@ -10,3 +10,6 @@ clean:
 	rm $(CURDIR)/.go/src/github.com/tonyyanga/gdp-replicate/gdp_replicate.so
 	rm $(CURDIR)/.go/src/github.com/tonyyanga/gdp-replicate/gdp_replicate.h
 	rm -Rf $(CURDIR)/.go/src/github.com/tonyyanga/gdp-replicate
+
+test:
+	GOPATH=$(CURDIR)/.go go test

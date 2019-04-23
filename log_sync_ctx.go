@@ -26,7 +26,7 @@ type LogSyncCtx struct {
 }
 
 // Global map from handleTicket in LogSyncHandle to Go context
-var logCtxMap map[HandleTicket]LogSyncCtx
+var logCtxMap = make(map[HandleTicket]LogSyncCtx)
 
 func newLogSyncCtx(sqlFile string) (HandleTicket, error) {
 	db, err := sql.Open("sqlite3", sqlFile)
