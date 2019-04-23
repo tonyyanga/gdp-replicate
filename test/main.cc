@@ -62,6 +62,11 @@ int main() {
     cout<<"MSG 3 length = "<<msg3.length<<endl;
     cout<<"MSG 4 length = "<<msg4.length<<endl;
 
+    free(msg1.data);
+    free(msg2.data);
+    free(msg3.data);
+    free(msg4.data);
+
     return 0;
 }
 
