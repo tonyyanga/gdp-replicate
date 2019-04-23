@@ -49,6 +49,9 @@ int main() {
     auto ret6 = HandleMsg(handle2, peer, ret5.r0);
     assert(ret6.r1 == 0);
 
+    auto ret7 = HandleMsg(handle1, peer, ret6.r0);
+    assert(ret7.r1 == -1);
+
     auto msg1 = ret3.r0;
     auto msg2 = ret4.r0;
     auto msg3 = ret5.r0;
