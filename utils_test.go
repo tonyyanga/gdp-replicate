@@ -2,6 +2,7 @@ package main
 
 import (
     "testing"
+    "log"
 
     "github.com/tonyyanga/gdp-replicate/policy"
     "github.com/tonyyanga/gdp-replicate/gdp"
@@ -19,5 +20,10 @@ func TestMsgConv(t *testing.T) {
 
     cMsg := toCMsg(msg)
 
-    toGoMsg(cMsg)
+    resp := toGoMsg(cMsg)
+
+    _, ok := resp.(*policy.GraphMsgContent)
+    if !ok {
+        log.Fatalf("Wrong output content: %v", resp)
+    }
 }

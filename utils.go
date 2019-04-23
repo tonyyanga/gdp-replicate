@@ -24,7 +24,6 @@ func toCMsg(msg interface{}) C.Msg {
     dest := &bytes.Buffer{}
 
     encoder := gob.NewEncoder(dest)
-    gob.Register(&policy.NaiveMsgContent{})
     gob.Register(&policy.GraphMsgContent{})
 
     err := encoder.Encode(msg)
@@ -63,12 +62,11 @@ func toGoMsg(msg C.Msg) interface{} {
     src := bytes.NewReader(srcBytes)
 
     decoder := gob.NewDecoder(src)
-    gob.Register(&policy.NaiveMsgContent{})
     gob.Register(&policy.GraphMsgContent{})
 
-    var resp interface{}
+    resp := &policy.GraphMsgContent{}
 
-    err := decoder.Decode(resp)
+    err := decoder.Decode(&resp)
     if err != nil {
         panic(err)
     }
