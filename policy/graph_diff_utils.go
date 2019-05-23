@@ -51,30 +51,14 @@ func (ctx *peerPolicyContext) getConnectedAddrs(addrs []gdp.Hash) []gdp.Hash {
 //   a list of begins / ends in local graph reached
 func (ctx *peerPolicyContext) searchAhead(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
 	actualMap := ctx.graph.GetActualPtrMap()
-	terminalMap := initSet(terminals)
+	terminalMap := gdp.InitSet(terminals)
 
-	visited := make([]gdp.Hash, 0)
-	localEnds := make([]gdp.Hash, 0)
-
-	current := start
-	prev, found := actualMap[current]
-	for found {
-		if _, terminate := terminalMap[current]; terminate {
-			// early termination because reaching terminal
-			return visited, localEnds
-		}
-
-		current = prev
-		prev, found = actualMap[current]
-
-		// Do not store the last pointer on the map
-		if found {
-			visited = append(visited, current)
-		}
+	queryer := func(id gdp.Hash) (gdp.Hash, bool) {
+		val, ok := actualMap[id]
+		return val, ok
 	}
 
-	localEnds = append(localEnds, current)
-	return visited, localEnds
+	return gdp.SearchAhead(start, terminalMap, queryer)
 }
 
 // Traverse after in the graph starting from "start". Traversal on a certain path ends when meeting a node in
@@ -83,34 +67,14 @@ func (ctx *peerPolicyContext) searchAhead(start gdp.Hash, terminals []gdp.Hash) 
 //   a list of hash addresses visited, not including start or terminals
 //   a list of begins / ends in local graph reached
 func (ctx *peerPolicyContext) searchAfter(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
-	return ctx._searchAfter(start, initSet(terminals))
-}
-
-func (ctx *peerPolicyContext) _searchAfter(start gdp.Hash, terminals map[gdp.Hash]bool) ([]gdp.Hash, []gdp.Hash) {
 	logicalMap := ctx.graph.GetLogicalPtrMap()
 
-	// Use recursion since we may have branches, start is never included
-	after, found := logicalMap[start]
-
-	// base cases
-	if _, terminate := terminals[start]; terminate {
-		return []gdp.Hash{}, []gdp.Hash{}
+	queryer := func(id gdp.Hash) ([]gdp.Hash, bool) {
+		val, ok := logicalMap[id]
+		return val, ok
 	}
 
-	if !found {
-		return []gdp.Hash{}, []gdp.Hash{start}
-	}
-
-	visited := []gdp.Hash{}
-	localEnds := make([]gdp.Hash, 0)
-	for _, node := range after {
-		visited_, localEnds_ := ctx._searchAfter(node, terminals)
-		visited = append(visited, node)
-		visited = append(visited, visited_...)
-		localEnds = append(localEnds, localEnds_...)
-	}
-
-	return visited, localEnds
+	return gdp.SearchAfter(start, gdp.InitSet(terminals), queryer)
 }
 
 // Compare peer's begins and ends with my own.

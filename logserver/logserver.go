@@ -17,3 +17,10 @@ type LogServer interface {
 	ReadAllRecords() ([]gdp.Record, error)
 	WriteRecords(records []gdp.Record) error
 }
+
+type SearchableLogServer interface {
+	LogServer
+
+	// This function searches for records that have PrevHash = id
+	FindNextRecords(id gdp.Hash) ([]gdp.Metadatum, error)
+}

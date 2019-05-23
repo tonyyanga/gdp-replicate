@@ -18,8 +18,8 @@ func findDifferences(
 	myHashes,
 	theirHashes []gdp.Hash,
 ) (onlyMine []gdp.Hash, onlyTheirs []gdp.Hash) {
-	mySet := initSet(myHashes)
-	theirSet := initSet(theirHashes)
+	mySet := gdp.InitSet(myHashes)
+	theirSet := gdp.InitSet(theirHashes)
 
 	for myHash := range mySet {
 		_, present := theirSet[myHash]
@@ -35,13 +35,4 @@ func findDifferences(
 	}
 
 	return onlyMine, onlyTheirs
-}
-
-// initSet converts a HashAddr slice to a set
-func initSet(hashes []gdp.Hash) map[gdp.Hash]bool {
-	set := make(map[gdp.Hash]bool)
-	for _, hash := range hashes {
-		set[hash] = false
-	}
-	return set
 }
