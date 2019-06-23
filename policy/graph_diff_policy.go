@@ -36,6 +36,8 @@ const (
 // GraphDiffPolicy is a Policy and uses diff of
 // begins and ends of graph to detect differences
 // See algorithm spec on Dropbox Paper for more details
+// Requires an in-memory copy of the metadata of a log
+// To scale for larger dataset, use ExternalGraphDiffPolicy
 type GraphDiffPolicy struct {
 	graph loggraph.LogGraph // most up to date graph
 
@@ -137,7 +139,10 @@ func (policy *GraphDiffPolicy) GenerateMessage(dest gdp.Hash) (
 	return content, nil
 }
 
-func (policy *GraphDiffPolicy) ProcessMessage(src gdp.Hash, packedMsg interface{}) (interface{}, error) {
+func (policy *GraphDiffPolicy) ProcessMessage(src gdp.Hash, packedMsg interface{}) (
+	interface{},
+	error,
+) {
 	zap.S().Debugw(
 		"processing message",
 		"src", src.Readable(),
