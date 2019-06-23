@@ -78,7 +78,8 @@ func (s *Snapshot) SearchAhead(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash
 			panic(err) // TODO
 		}
 
-		if len(metadata) == 0 {
+		if metadata == nil || len(metadata) == 0 ||
+            s.ExistRecord(metadata[0].Hash) {
 			return gdp.NullHash, false
 		} else {
 			return metadata[0].PrevHash, true
@@ -97,12 +98,14 @@ func (s *Snapshot) SearchAfter(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash
 			panic(err) // TODO
 		}
 
-		if len(metadata) == 0 {
+		if metadata == nil || len(metadata) == 0 {
 			return nil, false
 		} else {
 			var result []gdp.Hash
 			for _, m := range metadata {
-				result = append(result, m.Hash)
+                if s.ExistRecord(m.Hash) {
+                    result = append(result, m.Hash)
+                }
 			}
 
 			return result, true

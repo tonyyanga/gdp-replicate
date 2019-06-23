@@ -49,15 +49,15 @@ func newLogSyncCtx(sqlFile string) (HandleTicket, error) {
 		return 0, err
 	}
 
-    // TODO: support alternate policies
-    policy := policy.NewGraphDiffPolicy(logGraph)
+	// TODO: support alternate policies
+	policy := policy.NewGraphDiffPolicy(logGraph)
 
 	ticket := generateHandleTicket()
 
 	logCtxMap[ticket] = LogSyncCtx{
 		logServer: logServer,
 		logGraph:  logGraph,
-        Policy: policy,
+		Policy:    policy,
 	}
 
 	return ticket, nil
