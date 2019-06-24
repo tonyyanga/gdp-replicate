@@ -42,12 +42,22 @@ func (s *Snapshot) SaveNewRecord(id gdp.Hash, prev gdp.Hash) {
 
 }
 
-func (s *Snapshot) GetLogicalStarts() map[gdp.Hash][]gdp.Hash {
-	return s.logicalStarts
+func (snapshot *Snapshot) GetLogicalEnds() []gdp.Hash {
+	ends := make([]gdp.Hash, 0, len(snapshot.logicalEnds))
+	for hash, _ := range snapshot.logicalEnds {
+		ends = append(ends, hash)
+	}
+	return ends
 }
 
-func (s *Snapshot) GetLogicalEnds() map[gdp.Hash]bool {
-	return s.logicalEnds
+func (snapshot *Snapshot) GetLogicalBegins() []gdp.Hash {
+	starts := make([]gdp.Hash, 0, len(snapshot.logicalStarts))
+	for _, hashes := range snapshot.logicalStarts {
+		for _, hash := range hashes {
+			starts = append(starts, hash)
+		}
+	}
+	return starts
 }
 
 // check the existence of a record hash in the snapshot
@@ -79,7 +89,7 @@ func (s *Snapshot) SearchAhead(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash
 		}
 
 		if metadata == nil || len(metadata) == 0 ||
-            s.ExistRecord(metadata[0].Hash) {
+			s.ExistRecord(metadata[0].Hash) {
 			return gdp.NullHash, false
 		} else {
 			return metadata[0].PrevHash, true
@@ -103,9 +113,9 @@ func (s *Snapshot) SearchAfter(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash
 		} else {
 			var result []gdp.Hash
 			for _, m := range metadata {
-                if s.ExistRecord(m.Hash) {
-                    result = append(result, m.Hash)
-                }
+				if s.ExistRecord(m.Hash) {
+					result = append(result, m.Hash)
+				}
 			}
 
 			return result, true

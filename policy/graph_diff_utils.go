@@ -2,6 +2,16 @@ package policy
 
 import "github.com/tonyyanga/gdp-replicate/gdp"
 
+type graphRepresentation interface {
+	GetLogicalBegins() []gdp.Hash
+	GetLogicalEnds() []gdp.Hash
+}
+
+type graphQueryable interface {
+	SearchAhead(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash)
+	SearchAfter(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash)
+}
+
 // Get peer policy context
 func (policy *GraphDiffPolicy) getPeerPolicyContext(peer gdp.Hash) *peerPolicyContext {
 	return &peerPolicyContext{
@@ -13,6 +23,10 @@ func (policy *GraphDiffPolicy) getPeerPolicyContext(peer gdp.Hash) *peerPolicyCo
 // Return all connected hash addresses in the graph from a list of requested
 // This function should handle deduplication
 func (ctx *peerPolicyContext) getConnectedAddrs(addrs []gdp.Hash) []gdp.Hash {
+	return getConnectedAddrs(ctx, addrs)
+}
+
+func getConnectedAddrs(graph graphQueryable, addrs []gdp.Hash) []gdp.Hash {
 	empty := []gdp.Hash{}
 
 	result := make(map[gdp.Hash]int)
@@ -21,12 +35,12 @@ func (ctx *peerPolicyContext) getConnectedAddrs(addrs []gdp.Hash) []gdp.Hash {
 		// Add addr itself
 		result[addr] = 1
 
-		prev, _ := ctx.searchAhead(addr, empty)
+		prev, _ := graph.SearchAhead(addr, empty)
 		for _, node := range prev {
 			result[node] = 1
 		}
 
-		next, _ := ctx.searchAfter(addr, empty)
+		next, _ := graph.SearchAfter(addr, empty)
 		for _, node := range next {
 			result[node] = 1
 		}
@@ -49,7 +63,7 @@ func (ctx *peerPolicyContext) getConnectedAddrs(addrs []gdp.Hash) []gdp.Hash {
 // Return:
 //   a list of hash addresses visited, not including start or terminals
 //   a list of begins / ends in local graph reached
-func (ctx *peerPolicyContext) searchAhead(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
+func (ctx *peerPolicyContext) SearchAhead(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
 	actualMap := ctx.graph.GetActualPtrMap()
 	terminalMap := gdp.InitSet(terminals)
 
@@ -66,7 +80,7 @@ func (ctx *peerPolicyContext) searchAhead(start gdp.Hash, terminals []gdp.Hash) 
 // Return:
 //   a list of hash addresses visited, not including start or terminals
 //   a list of begins / ends in local graph reached
-func (ctx *peerPolicyContext) searchAfter(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
+func (ctx *peerPolicyContext) SearchAfter(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
 	logicalMap := ctx.graph.GetLogicalPtrMap()
 
 	queryer := func(id gdp.Hash) ([]gdp.Hash, bool) {
@@ -87,8 +101,16 @@ func (ctx *peerPolicyContext) compareBeginsEnds(
 	peerBegins,
 	peerEnds []gdp.Hash,
 ) ([]gdp.Hash, []gdp.Hash, []gdp.Hash, []gdp.Hash) {
-	localBegins := ctx.graph.GetLogicalBegins()
-	localEnds := ctx.graph.GetLogicalEnds()
+	return compareGraphBeginsEnds(ctx.graph, peerBegins, peerEnds)
+}
+
+func compareGraphBeginsEnds(
+	graph graphRepresentation,
+	peerBegins,
+	peerEnds []gdp.Hash,
+) ([]gdp.Hash, []gdp.Hash, []gdp.Hash, []gdp.Hash) {
+	localBegins := graph.GetLogicalBegins()
+	localEnds := graph.GetLogicalEnds()
 	localBeginsRet, peerBeginsRet := findDifferences(localBegins, peerBegins)
 	localEndsRet, peerEndsRet := findDifferences(localEnds, peerEnds)
 	return localBeginsRet, localEndsRet, peerBeginsRet, peerEndsRet

@@ -243,7 +243,7 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *GraphMsgContent, src gdp.Has
 	for _, begin := range peerBeginsNotMatched {
 		if _, found := nodeMap[begin]; found {
 			// Search all nodes ahead of begin to be sent to peer
-			visited, _ := ctx.searchAhead(begin, msg.LogicalEnds)
+			visited, _ := ctx.SearchAhead(begin, msg.LogicalEnds)
 			nodesToSend = append(nodesToSend, visited...)
 		}
 	}
@@ -253,7 +253,7 @@ func (policy *GraphDiffPolicy) processFirstMsg(msg *GraphMsgContent, src gdp.Has
 	for _, end := range peerEndsNotMatched {
 		if _, found := nodeMap[end]; found {
 			// Search all nodes after end to be sent to peer
-			visited, _ := ctx.searchAfter(end, msg.LogicalBegins)
+			visited, _ := ctx.SearchAfter(end, msg.LogicalBegins)
 			nodesToSend = append(nodesToSend, visited...)
 		}
 	}
@@ -307,7 +307,7 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *GraphMsgContent, src gdp.Ha
 		if _, found := nodeMap[begin]; found {
 			// Search all nodes ahead of begin to be sent to peer
 			// If we reach a begin / end of local graph, add to myBeginsEndsToSend
-			visited, localEnds := ctx.searchAhead(begin, msg.LogicalEnds)
+			visited, localEnds := ctx.SearchAhead(begin, msg.LogicalEnds)
 			nodesToSend = append(nodesToSend, visited...)
 
 			for _, node := range localEnds {
@@ -323,7 +323,7 @@ func (policy *GraphDiffPolicy) processSecondMsg(msg *GraphMsgContent, src gdp.Ha
 		if _, found := nodeMap[end]; found {
 			// Search all nodes ahead of begin to be sent to peer
 			// If we reach a begin / end of local graph, add to myBeginsEndsToSend
-			visited, localEnds := ctx.searchAfter(end, msg.LogicalBegins)
+			visited, localEnds := ctx.SearchAfter(end, msg.LogicalBegins)
 			nodesToSend = append(nodesToSend, visited...)
 
 			for _, node := range localEnds {
