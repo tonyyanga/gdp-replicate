@@ -10,11 +10,9 @@ import (
 	"errors"
 	"math/rand"
 
-	"github.com/tonyyanga/gdp-replicate/loggraph"
 	"github.com/tonyyanga/gdp-replicate/logserver"
 	"github.com/tonyyanga/gdp-replicate/policy"
 	"go.uber.org/zap"
-	//"github.com/tonyyanga/gdp-replicate/logserver"
 )
 
 type HandleTicket = uint32
@@ -22,7 +20,6 @@ type HandleTicket = uint32
 type LogSyncCtx struct {
 	Policy    policy.Policy
 	logServer logserver.LogServer
-	logGraph  loggraph.LogGraph
 }
 
 // Global map from handleTicket in LogSyncHandle to Go context
@@ -39,24 +36,14 @@ func newLogSyncCtx(sqlFile string) (HandleTicket, error) {
 		return 0, err
 	}
 	logServer := logserver.NewSqliteServer(db)
-	logGraph, err := loggraph.NewSimpleGraph(logServer)
-	if err != nil {
-		zap.S().Errorw(
-			"Failed to create log graph",
-			"sqlite-file", sqlFile,
-			"error", err,
-		)
-		return 0, err
-	}
 
 	// TODO: support alternate policies
-	policy := policy.NewGraphDiffPolicy(logGraph)
+	policy := policy.NewExternalGraphDiffPolicy(logServer)
 
 	ticket := generateHandleTicket()
 
 	logCtxMap[ticket] = LogSyncCtx{
 		logServer: logServer,
-		logGraph:  logGraph,
 		Policy:    policy,
 	}
 
