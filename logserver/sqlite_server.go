@@ -21,8 +21,17 @@ func NewSqliteServer(db *sql.DB) *SqliteServer {
 }
 
 func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
+    // Use a readonly transaction to get logicalStarts and logicalEnds
+    tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+    // We don't write to the db, so we rollback as always
+    defer func() { tx.Rollback() } ()
+
 	queryString := "SELECT max(rowid) from log_entry"
-	rows, err := s.db.Query(queryString)
+	rows, err := tx.Query(queryString)
 	if err != nil {
 		return nil, err
 	}
@@ -38,12 +47,63 @@ func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
 
 	maxRowId := rowids[0]
 
+    // Logical starts
+    queryString = `
+    SELECT hash, recno, timestamp, accuracy, prevhash, sig
+    FROM log_entry
+    WHERE NOT hash IN
+        (SELECT log1.hash as hash
+         FROM log_entry log1
+         JOIN log_entry log2
+         ON log1.prevhash = log2.hash
+        )`
+
+	rows, err = tx.Query(queryString)
+	if err != nil {
+		return nil, err
+	}
+
+    startsMetadata, err := parseMetadataRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+    starts := make(map[gdp.Hash][]gdp.Hash)
+    for _, meta := range startsMetadata {
+        starts[meta.Hash] = []gdp.Hash{meta.PrevHash}
+    }
+
+    queryString = `
+    SELECT hash, recno, timestamp, accuracy, prevhash, sig
+    FROM log_entry
+    WHERE NOT hash IN
+        (SELECT log2.hash as hash
+         FROM log_entry log1
+         JOIN log_entry log2
+         ON log1.prevhash = log2.hash
+        )`
+
+	rows, err = tx.Query(queryString)
+	if err != nil {
+		return nil, err
+	}
+
+    endsMetadata, err := parseMetadataRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+    ends := make(map[gdp.Hash]bool)
+    for _, meta := range endsMetadata {
+        ends[meta.Hash] = true
+    }
+
 	return &Snapshot{
 		time:          maxRowId,
 		logServer:     s,
 		newRecords:    make(map[gdp.Hash]bool),
-		logicalStarts: make(map[gdp.Hash][]gdp.Hash),
-		logicalEnds:   make(map[gdp.Hash]bool),
+		logicalStarts: starts,
+		logicalEnds:   ends,
 	}, nil
 }
 

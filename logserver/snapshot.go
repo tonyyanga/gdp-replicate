@@ -43,7 +43,7 @@ func (s *Snapshot) RegisterNewRecord(id gdp.Hash, prev gdp.Hash) {
 
 	// If prev is not in the map, this record is a new logical start
 	if !s.ExistRecord(prev) {
-		s.logicalStarts[prev] = append(s.logicalStarts[prev], id)
+		s.logicalStarts[prev] = append(s.logicalStarts[id], prev)
 	}
 
 	// If no record has prevHash as id, this record is a new logical end
