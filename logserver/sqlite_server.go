@@ -9,6 +9,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// SqliteServer implements SnapshotLogServer interface
+// time is represented as timestamp
 type SqliteServer struct {
 	db *sql.DB
 }
@@ -70,6 +72,28 @@ func (s *SqliteServer) ReadRecords(hashes []gdp.Hash) ([]gdp.Record, error) {
 
 	return records, nil
 }
+
+// SearchableLogServer interface
+func (s *SqliteServer) FindNextRecords(id gdp.Hash) ([]gdp.Metadatum, error) {
+    hexHash := fmt.Sprintf("\"%X\"", id)
+
+	queryString := fmt.Sprintf(
+		"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE hex(prevhash) = %s",
+		hexHash,
+	)
+	rows, err := s.db.Query(queryString)
+	if err != nil {
+		return nil, err
+	}
+
+	metadata, err := parseMetadataRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return metadata, nil
+}
+
 
 // ReadAllRecords will retrieve all records from the database.
 func (s *SqliteServer) ReadAllMetadata() ([]gdp.Metadatum, error) {
