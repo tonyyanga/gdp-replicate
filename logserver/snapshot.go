@@ -38,8 +38,29 @@ type Snapshot struct {
 
 // save a record's hash in the snapshot to mark its existence and update
 // the snapshot digest
-func (s *Snapshot) SaveNewRecord(id gdp.Hash, prev gdp.Hash) {
+func (s *Snapshot) RegisterNewRecord(id gdp.Hash, prev gdp.Hash) {
+    s.newRecords[id] = true
 
+    // If prev is not in the map, this record is a new logical start
+    if !s.ExistRecord(prev) {
+        s.logicalStarts[prev] = append(s.logicalStarts[prev], id)
+    }
+
+    // If no record has prevHash as id, this record is a new logical end
+    metadata, err := s.logServer.FindNextRecords(id)
+    if err != nil {
+        panic(err) // TODO
+    }
+
+    if metadata == nil || len(metadata) == 0 {
+        s.logicalEnds[id] = true
+    }
+}
+
+func (s *Snapshot) RegisterNewRecords(records []gdp.Record) {
+    for _, rec := range records {
+        s.RegisterNewRecord(rec.Hash, rec.PrevHash)
+    }
 }
 
 func (snapshot *Snapshot) GetLogicalEnds() []gdp.Hash {
