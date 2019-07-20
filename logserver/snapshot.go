@@ -14,11 +14,11 @@ type SnapshotLogServer interface {
 	// Filter records by "time"
 	// Implementations of this interface should determine how to
 	// interpret "time" in snapshot and here
-	CheckRecordExistence(time int, id gdp.Hash) (bool, error)
+	CheckRecordExistence(time int64, id gdp.Hash) (bool, error)
 }
 
 type Snapshot struct {
-	time      int // Time of snapshot creation
+	time      int64 // Time of snapshot creation
 	logServer SnapshotLogServer
 
 	// newRecords are a map of hashes that are considered in the snapshot

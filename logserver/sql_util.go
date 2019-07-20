@@ -6,6 +6,22 @@ import (
 	"github.com/tonyyanga/gdp-replicate/gdp"
 )
 
+func parseIntRows(rows *sql.Rows) ([]int64, error) {
+    var results []int64
+
+    for rows.Next() {
+        var row int64
+        err := rows.Scan(&row)
+		if err != nil {
+			return nil, err
+		}
+        results = append(results, row)
+    }
+
+    return results, nil
+}
+
+
 // parseRecordRows parses sql rows into Records.
 func parseRecordRows(rows *sql.Rows) ([]gdp.Record, error) {
 	var hashHolder []byte
