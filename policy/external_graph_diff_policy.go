@@ -336,7 +336,7 @@ func (policy *ExternalGraphDiffPolicy) processThirdMsg(msg *GraphMsgContent, src
 		return nil, err
 	}
 
-    snapshot.RegisterNewRecords(msg.RecordsNotInRX)
+	snapshot.RegisterNewRecords(msg.RecordsNotInRX)
 	err = policy.logserver.WriteRecords(msg.RecordsNotInRX)
 	if err != nil {
 		policy.resetPeerStatus(src)

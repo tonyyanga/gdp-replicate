@@ -21,56 +21,56 @@ func NewSqliteServer(db *sql.DB) *SqliteServer {
 }
 
 func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
-    queryString := "SELECT max(rowid) from log_entry"
-    rows, err := s.db.Query(queryString)
-    if err != nil {
-        return nil, err
-    }
+	queryString := "SELECT max(rowid) from log_entry"
+	rows, err := s.db.Query(queryString)
+	if err != nil {
+		return nil, err
+	}
 
-    rowids, err := parseIntRows(rows)
-    if err != nil {
-        return nil, err
-    }
+	rowids, err := parseIntRows(rows)
+	if err != nil {
+		return nil, err
+	}
 
-    if len(rowids) != 1 {
-        panic("Unexpected max row id from query")
-    }
+	if len(rowids) != 1 {
+		panic("Unexpected max row id from query")
+	}
 
-    maxRowId := rowids[0]
+	maxRowId := rowids[0]
 
-    return &Snapshot{
-        time: maxRowId,
-        logServer: s,
-        newRecords: make(map[gdp.Hash]bool),
-        logicalStarts: make(map[gdp.Hash][]gdp.Hash),
-        logicalEnds: make(map[gdp.Hash]bool),
-    }, nil
+	return &Snapshot{
+		time:          maxRowId,
+		logServer:     s,
+		newRecords:    make(map[gdp.Hash]bool),
+		logicalStarts: make(map[gdp.Hash][]gdp.Hash),
+		logicalEnds:   make(map[gdp.Hash]bool),
+	}, nil
 }
 
 func (s *SqliteServer) DestroySnapshot(*Snapshot) {}
 
 func (s *SqliteServer) CheckRecordExistence(time int64, id gdp.Hash) (bool, error) {
-    hexHash := fmt.Sprintf("\"%X\"", id)
+	hexHash := fmt.Sprintf("\"%X\"", id)
 
 	queryString := fmt.Sprintf(
 		"SELECT count(*) FROM log_entry WHERE hex(hash) = %s and rowid <= %d",
 		hexHash,
-        time,
+		time,
 	)
 	rows, err := s.db.Query(queryString)
 	if err != nil {
 		return false, err
 	}
 
-    cnt, err := parseIntRows(rows)
-    if err != nil {
-        return false, err
-    }
-    if len(cnt) != 1 {
-        panic("Unexpected count from query")
-    }
+	cnt, err := parseIntRows(rows)
+	if err != nil {
+		return false, err
+	}
+	if len(cnt) != 1 {
+		panic("Unexpected count from query")
+	}
 
-    return cnt[0] > 0, nil
+	return cnt[0] > 0, nil
 }
 
 // ReadRecords will retrieive the metadat of records with specified
@@ -129,7 +129,7 @@ func (s *SqliteServer) ReadRecords(hashes []gdp.Hash) ([]gdp.Record, error) {
 
 // SearchableLogServer interface
 func (s *SqliteServer) FindNextRecords(id gdp.Hash) ([]gdp.Metadatum, error) {
-    hexHash := fmt.Sprintf("\"%X\"", id)
+	hexHash := fmt.Sprintf("\"%X\"", id)
 
 	queryString := fmt.Sprintf(
 		"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE hex(prevhash) = %s",
@@ -147,7 +147,6 @@ func (s *SqliteServer) FindNextRecords(id gdp.Hash) ([]gdp.Metadatum, error) {
 
 	return metadata, nil
 }
-
 
 // ReadAllRecords will retrieve all records from the database.
 func (s *SqliteServer) ReadAllMetadata() ([]gdp.Metadatum, error) {
