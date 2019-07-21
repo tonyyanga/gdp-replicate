@@ -21,14 +21,14 @@ func NewSqliteServer(db *sql.DB) *SqliteServer {
 }
 
 func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
-    // Use a readonly transaction to get logicalStarts and logicalEnds
-    tx, err := s.db.Begin()
+	// Use a readonly transaction to get logicalStarts and logicalEnds
+	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-    // We don't write to the db, so we rollback as always
-    defer func() { tx.Rollback() } ()
+	// We don't write to the db, so we rollback as always
+	defer func() { tx.Rollback() }()
 
 	queryString := "SELECT max(rowid) from log_entry"
 	rows, err := tx.Query(queryString)
@@ -47,8 +47,8 @@ func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
 
 	maxRowId := rowids[0]
 
-    // Logical starts
-    queryString = `
+	// Logical starts
+	queryString = `
     SELECT hash, recno, timestamp, accuracy, prevhash, sig
     FROM log_entry
     WHERE NOT hash IN
@@ -63,17 +63,17 @@ func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
 		return nil, err
 	}
 
-    startsMetadata, err := parseMetadataRows(rows)
+	startsMetadata, err := parseMetadataRows(rows)
 	if err != nil {
 		return nil, err
 	}
 
-    starts := make(map[gdp.Hash][]gdp.Hash)
-    for _, meta := range startsMetadata {
-        starts[meta.Hash] = []gdp.Hash{meta.PrevHash}
-    }
+	starts := make(map[gdp.Hash][]gdp.Hash)
+	for _, meta := range startsMetadata {
+		starts[meta.Hash] = []gdp.Hash{meta.PrevHash}
+	}
 
-    queryString = `
+	queryString = `
     SELECT hash, recno, timestamp, accuracy, prevhash, sig
     FROM log_entry
     WHERE NOT hash IN
@@ -88,15 +88,15 @@ func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
 		return nil, err
 	}
 
-    endsMetadata, err := parseMetadataRows(rows)
+	endsMetadata, err := parseMetadataRows(rows)
 	if err != nil {
 		return nil, err
 	}
 
-    ends := make(map[gdp.Hash]bool)
-    for _, meta := range endsMetadata {
-        ends[meta.Hash] = true
-    }
+	ends := make(map[gdp.Hash]bool)
+	for _, meta := range endsMetadata {
+		ends[meta.Hash] = true
+	}
 
 	return &Snapshot{
 		time:          maxRowId,
