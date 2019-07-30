@@ -47,7 +47,10 @@ func getConnectedAddrs(graph graphQueryable, addrs []gdp.Hash) []gdp.Hash {
 	}
 
 	for _, addr := range addrs {
-		_getConnected(addr)
+        _, ok := result[addr]
+        if !ok {
+            _getConnected(addr)
+        }
 	}
 
 	ret := []gdp.Hash{}
