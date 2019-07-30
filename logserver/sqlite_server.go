@@ -36,7 +36,7 @@ func (s *SqliteServer) SearchAhead(id gdp.Hash, time int64, newRecords []gdp.Has
     WITH RECURSIVE recur AS (
         SELECT hash, recno, timestamp, accuracy, prevhash, sig
         FROM log_entry
-        WHERE hash IN (%s) AND (
+        WHERE hex(hash) IN (%s) AND (
               rowid <= %d OR hex(hash) IN (%s)
             )
         UNION ALL
@@ -44,7 +44,7 @@ func (s *SqliteServer) SearchAhead(id gdp.Hash, time int64, newRecords []gdp.Has
         FROM log_entry a
         JOIN recur b
         ON a.hash = b.prevhash
-        WHERE a.hash NOT IN (%s) AND
+        WHERE hex(a.hash) NOT IN (%s) AND
               (a.rowid <= %d OR hex(a.hash) IN (%s))
     )
     SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM recur
@@ -80,8 +80,8 @@ func (s *SqliteServer) SearchAhead(id gdp.Hash, time int64, newRecords []gdp.Has
     )
     SELECT hash, recno, timestamp, accuracy, prevhash, sig
     FROM recordsinsnapshot
-    WHERE prevhash NOT IN (SELECT hash FROM recordsinsnapshot)
-      AND hash IN (%s)`,
+    WHERE hex(prevhash) NOT IN (SELECT hash FROM recordsinsnapshot)
+      AND hex(hash) IN (%s)`,
 		time,
 		hash2hex(newRecords),
 		hash2hex(visited),
@@ -112,7 +112,7 @@ func (s *SqliteServer) SearchAfter(id gdp.Hash, time int64, newRecords []gdp.Has
     WITH RECURSIVE recur AS (
         SELECT hash, recno, timestamp, accuracy, prevhash, sig
         FROM log_entry
-        WHERE hash IN (%s) AND (
+        WHERE hex(hash) IN (%s) AND (
               rowid <= %d OR hex(hash) IN (%s)
             )
         UNION ALL
@@ -120,7 +120,7 @@ func (s *SqliteServer) SearchAfter(id gdp.Hash, time int64, newRecords []gdp.Has
         FROM log_entry a
         JOIN recur b
         ON a.hash = b.prevhash
-        WHERE a.hash NOT IN (%s) AND
+        WHERE hex(a.hash) NOT IN (%s) AND
               (a.rowid <= %d OR hex(a.hash) IN (%s))
     )
     SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM recur
@@ -158,8 +158,8 @@ func (s *SqliteServer) SearchAfter(id gdp.Hash, time int64, newRecords []gdp.Has
     )
     SELECT hash, recno, timestamp, accuracy, prevhash, sig
     FROM recordsinsnapshot
-    WHERE hash NOT IN (SELECT prevhash FROM recordsinsnapshot)
-      AND hash IN (%s)`,
+    WHERE hex(hash) NOT IN (SELECT prevhash FROM recordsinsnapshot)
+      AND hex(hash) IN (%s)`,
 		time,
 		hash2hex(newRecords),
 		hash2hex(visited),
@@ -214,7 +214,7 @@ func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
 	queryString = `
     SELECT hash, recno, timestamp, accuracy, prevhash, sig
     FROM log_entry
-    WHERE NOT hash IN
+    WHERE NOT hex(hash) IN
         (SELECT log1.hash as hash
          FROM log_entry log1
          JOIN log_entry log2
@@ -239,7 +239,7 @@ func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
 	queryString = `
     SELECT hash, recno, timestamp, accuracy, prevhash, sig
     FROM log_entry
-    WHERE NOT hash IN
+    WHERE NOT hex(hash) IN
         (SELECT log2.hash as hash
          FROM log_entry log1
          JOIN log_entry log2
