@@ -20,6 +20,161 @@ func NewSqliteServer(db *sql.DB) *SqliteServer {
 	return &SqliteServer{db: db}
 }
 
+func hash2hex(hashes []gdp.Hash) string {
+	ret := make([]string, 0, len(hashes))
+	for _, hash := range hashes {
+		ret = append(ret, fmt.Sprintf("\"%X\"", hash))
+	}
+
+	return strings.Join(ret, ",")
+}
+
+func (s *SqliteServer) SearchAhead(id gdp.Hash, time int64, newRecords []gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash, error) {
+	hexHash := fmt.Sprintf("\"%X\"", id)
+
+	queryString := fmt.Sprintf(`
+    WITH RECURSIVE recordsinsnapshot AS (
+        SELECT hash, recno, timestamp, accuracy, prevhash, sig
+        FROM log_entry
+        WHERE rowid <= %d OR hex(hash) IN (%s)
+    ),
+    recur AS (
+        SELECT hash, recno, timestamp, accuracy, prevhash, sig
+        FROM recordsinsnapshot
+        WHERE hash IN (%s)
+        UNION ALL
+        SELECT hash, recno, timestamp, accuracy, prevhash, sig
+        FROM recordsinsnapshot
+        WHERE hash IN (SELECT prevhash FROM recur) AND
+              hash NOT IN (%s)
+    ),
+    SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM recur
+    `,
+		time,
+		hash2hex(newRecords),
+		hexHash,
+		hash2hex(terminals),
+	)
+
+    rows, err := s.db.Query(queryString)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	metadata, err := parseMetadataRows(rows)
+	if err != nil {
+		return nil, nil, err
+	}
+
+    visited := make([]gdp.Hash, 0, len(metadata))
+	for _, meta := range metadata {
+		visited = append(visited, meta.Hash)
+	}
+
+	queryString = fmt.Sprintf(`
+    WITH RECURSIVE recordsinsnapshot AS (
+        SELECT hash, recno, timestamp, accuracy, prevhash, sig
+        FROM log_entry
+        WHERE rowid <= %d OR hex(hash) IN (%s)
+    )
+    SELECT hash, recno, timestamp, accuracy, prevhash, sig
+    FROM recordsinsnapshot
+    WHERE prevhash NOT IN (SELECT hash FROM recordsinsnapshot)
+      AND hash IN (%s)`,
+		hash2hex(visited),
+	)
+
+	rows, err = s.db.Query(queryString)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	metadata, err = parseMetadataRows(rows)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ends := make([]gdp.Hash, 0, len(metadata))
+	for _, meta := range metadata {
+		ends = append(ends, meta.Hash)
+	}
+
+	return visited, ends, nil
+}
+
+func (s *SqliteServer) SearchAfter(id gdp.Hash, time int64, newRecords []gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash, error) {
+    hexHash := fmt.Sprintf("\"%X\"", id)
+
+	queryString := fmt.Sprintf(`
+    WITH RECURSIVE recordsinsnapshot AS (
+        SELECT hash, recno, timestamp, accuracy, prevhash, sig
+        FROM log_entry
+        WHERE rowid <= %d OR hex(hash) IN (%s)
+    ),
+    recur AS (
+        SELECT hash, recno, timestamp, accuracy, prevhash, sig
+        FROM recordsinsnapshot
+        WHERE hash IN (%s)
+        UNION ALL
+        SELECT hash, recno, timestamp, accuracy, prevhash, sig
+        FROM recordsinsnapshot
+        WHERE prevhash IN (SELECT hash FROM recur) AND
+              hash NOT IN (%s)
+    ),
+    SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM recur
+    `,
+		time,
+		hash2hex(newRecords),
+		hexHash,
+		hash2hex(terminals),
+	)
+
+    rows, err := s.db.Query(queryString)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	metadata, err := parseMetadataRows(rows)
+	if err != nil {
+		return nil, nil, err
+	}
+
+    visited := make([]gdp.Hash, 0, len(metadata))
+	for _, meta := range metadata {
+		visited = append(visited, meta.Hash)
+	}
+
+	queryString = fmt.Sprintf(`
+    WITH RECURSIVE recordsinsnapshot AS (
+        SELECT hash, recno, timestamp, accuracy, prevhash, sig
+        FROM log_entry
+        WHERE rowid <= %d OR hex(hash) IN (%s)
+    )
+    SELECT hash, recno, timestamp, accuracy, prevhash, sig
+    FROM recordsinsnapshot
+    WHERE hash NOT IN (SELECT prevhash FROM recordsinsnapshot)
+      AND hash IN (%s)`,
+		hash2hex(visited),
+	)
+
+	rows, err = s.db.Query(queryString)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	metadata, err = parseMetadataRows(rows)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ends := make([]gdp.Hash, 0, len(metadata))
+	for _, meta := range metadata {
+		ends = append(ends, meta.Hash)
+	}
+
+	return visited, ends, nil
+}
+
 func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
 	// Use a readonly transaction to get logicalStarts and logicalEnds
 	tx, err := s.db.Begin()
