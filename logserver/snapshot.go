@@ -15,6 +15,11 @@ type SnapshotLogServer interface {
 	// Implementations of this interface should determine how to
 	// interpret "time" in snapshot and here
 	CheckRecordExistence(time int64, id gdp.Hash) (bool, error)
+
+	// Data store level implementation of searchs
+	// If not implemented, return err
+	SearchAhead(id gdp.Hash, time int64, newRecords map[gdp.Hash]bool, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash, error)
+	SearchAfter(id gdp.Hash, time int64, newRecords map[gdp.Hash]bool, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash, error)
 }
 
 type Snapshot struct {
@@ -101,6 +106,24 @@ func (s *Snapshot) ExistRecord(id gdp.Hash) bool {
 //   a list of hash addresses visited, not including start or terminals
 //   a list of begins / ends in local graph reached
 func (s *Snapshot) SearchAhead(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
+	visited, begins, err := s.logServer.SearchAhead(start, s.time, s.newRecords, terminals)
+	if err != nil {
+		return s.searchAhead(start, terminals)
+	} else {
+		return visited, begins
+	}
+}
+
+func (s *Snapshot) SearchAfter(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
+	visited, ends, err := s.logServer.SearchAfter(start, s.time, s.newRecords, terminals)
+	if err != nil {
+		return s.searchAhead(start, terminals)
+	} else {
+		return visited, ends
+	}
+}
+
+func (s *Snapshot) searchAhead(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
 	terminalMap := gdp.InitSet(terminals)
 
 	queryer := func(id gdp.Hash) (gdp.Hash, bool) {
@@ -120,7 +143,7 @@ func (s *Snapshot) SearchAhead(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash
 	return gdp.SearchAhead(start, terminalMap, queryer)
 }
 
-func (s *Snapshot) SearchAfter(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
+func (s *Snapshot) searchAfter(start gdp.Hash, terminals []gdp.Hash) ([]gdp.Hash, []gdp.Hash) {
 	terminalMap := gdp.InitSet(terminals)
 
 	queryer := func(id gdp.Hash) ([]gdp.Hash, bool) {
