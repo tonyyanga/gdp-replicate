@@ -14,9 +14,11 @@ def create_connection(db_file):
 def wipe_all_records(name):
     conn = create_connection(name)
     sql_wipe_table = "DELETE FROM log_entry;"
+    vacuum = "VACUUM;"
     try:
         c = conn.cursor()
         c.execute(sql_wipe_table)
+        c.execute(vacuum)
         conn.commit()
         conn.close()
     except sqlite3.Error as e:
@@ -33,9 +35,13 @@ def create_fresh_logdb(name):
                                         value BLOB,
                                         sig BLOB);
                                 """
+    index1 = """
+    CREATE INDEX prevhash ON log_entry (prevhash);
+    """
     try:
         c = conn.cursor()
         c.execute(sql_create_table)
+        c.execute(index1)
     except sqlite3.Error as e:
         print(e)
     return conn

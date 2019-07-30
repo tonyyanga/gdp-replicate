@@ -19,17 +19,20 @@ MAX_DATA_SIZE = 24001
 CHURN_TIME = []
 if sys.argv[5] == "churn":
     CHURN_TIME = [150]
-END_TIME = 300
+END_TIME = 2000
 FAULTY_POSSIBILITY = float(sys.argv[4])
 print("WRITER BEGINS", FAULTY_POSSIBILITY)
 
 if __name__ == '__main__':
     written_hash = [get_blob('0')]
     connections = [create_connection(file) for file in GLOG_DB]
+    cursors = [conn.cursor() for conn in connections]
     servers = list(range(LOGDB_NUM))
     cnt = 0
     log_file = open(PATH + "/writer.log", "w")
     churn_file = open(PATH + "/churn.log", "w")
+    for server in servers:
+        wipe_all_records(PATH + "/%s.db" % server)
     while cnt <= END_TIME:
         if cnt in CHURN_TIME:
             # randint is inclusive on both side
@@ -40,23 +43,23 @@ if __name__ == '__main__':
                 wipe_all_records(PATH + "/%s.db" % server)
                 log = dict(timestamp=str(datetime.datetime.now()),
                            server_id=server)
-                churn_file.write(str(log) + "\n")
-            churn_file.flush()
+            #    churn_file.write(str(log) + "\n")
+            #churn_file.flush()
         rand1, rand2 = random.uniform(0, 1), random.uniform(0, 1)
         # making faults:
         if rand1 <= FAULTY_POSSIBILITY:
             prev_hash = get_hash(str(random.getrandbits(256)))
             log = dict(timestamp=str(datetime.datetime.now()),
                        event='hole')
-            churn_file.write(str(log) + "\n")
-            churn_file.flush()
+            #churn_file.write(str(log) + "\n")
+            #churn_file.flush()
         elif rand2 <= FAULTY_POSSIBILITY:
             branch_pos = random.randint(0, len(written_hash) - 2)
             prev_hash = written_hash[branch_pos]
             log = dict(timestamp=str(datetime.datetime.now()),
                        event='branch')
-            churn_file.write(str(log) + "\n")
-            churn_file.flush()
+            #churn_file.write(str(log) + "\n")
+            #churn_file.flush()
         else:
             prev_hash = written_hash[-1]
         curr_hash = get_hash(str(random.getrandbits(256)))
@@ -65,19 +68,21 @@ if __name__ == '__main__':
         curr_sig = get_hash(str(random.getrandbits(100)))
         random.shuffle(servers)
         chosen = servers[:(LOGDB_NUM//2 + 1)]
+        print(chosen)
         for i in chosen:
-            conn = connections[i]
-            c = conn.cursor()
+            c = cursors[i]
             record = (get_blob(curr_hash), 0, 0, 0, prev_hash, get_blob(curr_data), get_blob(curr_sig))
             written_hash.append(curr_hash)
             c.execute('INSERT INTO log_entry VALUES (?, ?, ?, ?, ?, ?, ?)', record)
-            conn.commit()
-            log = dict(timestamp=str(datetime.datetime.now()),
-                       write_cnt=cnt,
-                       server_id=i,
-                       record_hash=curr_hash.hex().upper())
-            log_file.write(str(log) + "\n")
-        log_file.flush()
+            #log = dict(timestamp=str(datetime.datetime.now()),
+            #           write_cnt=cnt,
+            #           server_id=i,
+            #           record_hash=curr_hash.hex().upper())
+            #log_file.write(str(log) + "\n")
+        #log_file.flush()
         cnt += 1
         time.sleep(WRITE_INTERVAL)
+    for i in servers:
+        conn = connections[i]
+        conn.commit()
     print("writer finished.")
