@@ -1,10 +1,16 @@
 package logserver
 
 import (
+	"fmt"
+
 	"database/sql"
 
 	"github.com/tonyyanga/gdp-replicate/gdp"
 )
+
+func hash2hex(id gdp.Hash) string {
+	return fmt.Sprintf("x'%X'", id)
+}
 
 func parseIntRows(rows *sql.Rows) ([]int64, error) {
 	var results []int64

@@ -110,7 +110,7 @@ func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
 func (s *SqliteServer) DestroySnapshot(*Snapshot) {}
 
 func (s *SqliteServer) CheckRecordExistence(time int64, id gdp.Hash) (bool, error) {
-	hexHash := fmt.Sprintf("x'%X'", id)
+	hexHash := hash2hex(id)
 
 	queryString := fmt.Sprintf(
 		"SELECT count(*) FROM log_entry WHERE hash = %s and rowid <= %d",
@@ -142,14 +142,13 @@ func (s *SqliteServer) ReadMetadata(hashes []gdp.Hash) ([]gdp.Metadatum, error) 
 
 	hexHashes := make([]string, 0, len(hashes))
 	for _, hash := range hashes {
-		hexHashes = append(hexHashes, fmt.Sprintf("x'%X'", hash))
+		hexHashes = append(hexHashes, hash2hex(hash))
 	}
 
 	queryString := fmt.Sprintf(
 		"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE hash IN (%s)",
 		strings.Join(hexHashes, ","),
 	)
-	fmt.Println(queryString)
 	rows, err := s.db.Query(queryString)
 	if err != nil {
 		return nil, err
@@ -167,7 +166,7 @@ func (s *SqliteServer) ReadRecords(hashes []gdp.Hash) ([]gdp.Record, error) {
 
 	hexHashes := make([]string, 0, len(hashes))
 	for _, hash := range hashes {
-		hexHashes = append(hexHashes, fmt.Sprintf("x'%X'", hash))
+		hexHashes = append(hexHashes, hash2hex(hash))
 	}
 
 	queryString := fmt.Sprintf(
@@ -189,7 +188,7 @@ func (s *SqliteServer) ReadRecords(hashes []gdp.Hash) ([]gdp.Record, error) {
 
 // SearchableLogServer interface
 func (s *SqliteServer) FindNextRecords(id gdp.Hash) ([]gdp.Metadatum, error) {
-	hexHash := fmt.Sprintf("x'%X'", id)
+	hexHash := hash2hex(id)
 
 	queryString := fmt.Sprintf(
 		"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE prevhash = %s",
