@@ -110,10 +110,10 @@ func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
 func (s *SqliteServer) DestroySnapshot(*Snapshot) {}
 
 func (s *SqliteServer) CheckRecordExistence(time int64, id gdp.Hash) (bool, error) {
-	hexHash := fmt.Sprintf("\"%X\"", id)
+	hexHash := fmt.Sprintf("x'%X'", id)
 
 	queryString := fmt.Sprintf(
-		"SELECT count(*) FROM log_entry WHERE hex(hash) = %s and rowid <= %d",
+		"SELECT count(*) FROM log_entry WHERE hash = %s and rowid <= %d",
 		hexHash,
 		time,
 	)
@@ -142,11 +142,11 @@ func (s *SqliteServer) ReadMetadata(hashes []gdp.Hash) ([]gdp.Metadatum, error) 
 
 	hexHashes := make([]string, 0, len(hashes))
 	for _, hash := range hashes {
-		hexHashes = append(hexHashes, fmt.Sprintf("\"%X\"", hash))
+		hexHashes = append(hexHashes, fmt.Sprintf("x'%X'", hash))
 	}
 
 	queryString := fmt.Sprintf(
-		"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE hex(hash) IN (%s)",
+		"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE hash IN (%s)",
 		strings.Join(hexHashes, ","),
 	)
 	fmt.Println(queryString)
@@ -167,11 +167,11 @@ func (s *SqliteServer) ReadRecords(hashes []gdp.Hash) ([]gdp.Record, error) {
 
 	hexHashes := make([]string, 0, len(hashes))
 	for _, hash := range hashes {
-		hexHashes = append(hexHashes, fmt.Sprintf("\"%X\"", hash))
+		hexHashes = append(hexHashes, fmt.Sprintf("x'%X'", hash))
 	}
 
 	queryString := fmt.Sprintf(
-		"SELECT hash, recno, timestamp, accuracy, prevhash, value, sig FROM log_entry WHERE hex(hash) IN (%s)",
+		"SELECT hash, recno, timestamp, accuracy, prevhash, value, sig FROM log_entry WHERE hash IN (%s)",
 		strings.Join(hexHashes, ","),
 	)
 	rows, err := s.db.Query(queryString)
@@ -189,10 +189,10 @@ func (s *SqliteServer) ReadRecords(hashes []gdp.Hash) ([]gdp.Record, error) {
 
 // SearchableLogServer interface
 func (s *SqliteServer) FindNextRecords(id gdp.Hash) ([]gdp.Metadatum, error) {
-	hexHash := fmt.Sprintf("\"%X\"", id)
+	hexHash := fmt.Sprintf("x'%X'", id)
 
 	queryString := fmt.Sprintf(
-		"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE hex(prevhash) = %s",
+		"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE prevhash = %s",
 		hexHash,
 	)
 	rows, err := s.db.Query(queryString)
