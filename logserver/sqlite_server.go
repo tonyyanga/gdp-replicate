@@ -13,11 +13,19 @@ import (
 // time is represented as rowid, a builtin column of sqlite
 // snapshot time is inclusive of exact record at time
 type SqliteServer struct {
-	db *sql.DB
+	db          *sql.DB
+	getMetadata *sql.Stmt // Prepared stmt for single item query
 }
 
 func NewSqliteServer(db *sql.DB) *SqliteServer {
-	return &SqliteServer{db: db}
+	getMetadata, err := db.Prepare("SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE hash = ?")
+	if err != nil {
+		panic(err)
+	}
+	return &SqliteServer{
+		db:          db,
+		getMetadata: getMetadata,
+	}
 }
 
 func (s *SqliteServer) CreateSnapshot() (*Snapshot, error) {
@@ -145,11 +153,18 @@ func (s *SqliteServer) ReadMetadata(hashes []gdp.Hash) ([]gdp.Metadatum, error) 
 		hexHashes = append(hexHashes, hash2hex(hash))
 	}
 
-	queryString := fmt.Sprintf(
-		"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE hash IN (%s)",
-		strings.Join(hexHashes, ","),
-	)
-	rows, err := s.db.Query(queryString)
+	var rows *sql.Rows
+	var err error
+	if len(hexHashes) != 1 {
+		queryString := fmt.Sprintf(
+			"SELECT hash, recno, timestamp, accuracy, prevhash, sig FROM log_entry WHERE hash IN (%s)",
+			strings.Join(hexHashes, ","),
+		)
+		rows, err = s.db.Query(queryString)
+	} else {
+		// Use prepared statement
+		rows, err = s.getMetadata.Query(hexHashes[0])
+	}
 	if err != nil {
 		return nil, err
 	}
